@@ -1,0 +1,20 @@
+# Mapping for examples/messy.csv: a semicolon-separated export with its own column names and values.
+# Run: stampcheck check --source examples/messy.csv --mapping examples/mapping.yaml
+columns:
+  case_id: Ref
+  recommended: AI Suggestion
+  reviewer: Handled By
+  opened_at: First Opened
+  decided_at: Closed At
+  notified_at: Sent To Queue
+  category: Refund Band
+  # decision ("Outcome") and executed ("Times Executed") are recognised automatically.
+
+values:
+  recommended:
+    REFUND: approve
+    NO_REFUND: reject
+  decision:
+    AUTO_APPROVED_SLA: timeout_approve   # nobody reviewed it before the deadline, approved anyway
+    AUTO_REJECTED_SLA: timeout_reject
+    # "Approved", "Rejected" and "ESCALATED" are recognised without mapping.

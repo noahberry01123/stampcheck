@@ -1,0 +1,57 @@
+# Weekly check of a human approval step. Copy this file to .github/workflows/stampcheck.yml.
+#
+# Repository secrets it uses:
+#   STAMPCHECK_DB_URL   read-only Postgres URL, e.g. postgresql://readonly:...@db.internal/app
+#   SLACK_WEBHOOK_URL  Slack incoming webhook; a message is posted only when something is RED
+#                      or newly drifting
+# The job fails (red X) when something is RED, because `stampcheck check` exits with code 1.
+name: approval-review-check
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # Mondays 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4   # for stampcheck.yaml, if you keep one in the repo
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Before the first PyPI release, use:
+      #   pip install "stampcheck[postgres] @ git+https://github.com/<my-username>/stampcheck.git"
+      - run: pip install "stampcheck[postgres]"
+
+      # Last week's result.json lets the alert tell new drift from drift it already reported.
+      - uses: actions/cache/restore@v4
+        with:
+          path: stampcheck-out/result.json
+          key: stampcheck-result-${{ github.run_id }}
+          restore-keys: stampcheck-result-
+
+      - name: Check approval reviews
+        env:
+          DB_URL: ${{ secrets.STAMPCHECK_DB_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          stampcheck check \
+            --source "$DB_URL" \
+            --query "SELECT * FROM refund_reviews WHERE decided_at > now() - interval '60 days'" \
+            --out stampcheck-out \
+            --alert "slack:$SLACK_WEBHOOK_URL"
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: stampcheck-out/result.json
+          key: stampcheck-result-${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stampcheck-report
+          path: stampcheck-out/
