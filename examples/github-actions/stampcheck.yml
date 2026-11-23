@@ -23,7 +23,7 @@ jobs:
           python-version: "3.12"
 
       # Before the first PyPI release, use:
-      #   pip install "stampcheck[postgres] @ git+https://github.com/<my-username>/stampcheck.git"
+      #   pip install "stampcheck[postgres] @ git+https://github.com/noahberry01123/stampcheck.git"
       - run: pip install "stampcheck[postgres]"
 
       # Last week's result.json lets the alert tell new drift from drift it already reported.

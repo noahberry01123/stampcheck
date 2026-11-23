@@ -10,10 +10,10 @@ stampcheck demo
 Until the first PyPI release is out, install from GitHub instead:
 
 ```bash
-pip install "git+https://github.com/<my-username>/stampcheck.git"
+pip install "git+https://github.com/noahberry01123/stampcheck.git"
 ```
 
-![The report from stampcheck demo](docs/screenshot.png)
+![The report from stampcheck demo](https://raw.githubusercontent.com/noahberry01123/stampcheck/main/docs/screenshot.png)
 
 `stampcheck demo` builds 8 weeks of synthetic refund approvals, checks them, prints a summary, and writes `report.html`. It takes a few seconds and needs no setup.
 
@@ -90,7 +90,7 @@ with stampcheck.review(case_id, recommended="approve", reviewer=user_id, categor
 
 ### FastAPI approval endpoint
 
-In a web app, opening and deciding are two requests. Record `opened_at` when the case is served, and pass it at decision time. Full file: [examples/fastapi_endpoint.py](examples/fastapi_endpoint.py).
+In a web app, opening and deciding are two requests. Record `opened_at` when the case is served, and pass it at decision time. Full file: [examples/fastapi_endpoint.py](https://github.com/noahberry01123/stampcheck/blob/main/examples/fastapi_endpoint.py).
 
 ```python
 @app.get("/refunds/{case_id}")
@@ -113,7 +113,7 @@ def decide(case_id: str, body: Decision):
 
 ### Human approval step in an LLM-agent workflow
 
-The agent proposes a tool call, a person approves it, and the tool runs only after approval. Full file: [examples/agent_approval.py](examples/agent_approval.py).
+The agent proposes a tool call, a person approves it, and the tool runs only after approval. Full file: [examples/agent_approval.py](https://github.com/noahberry01123/stampcheck/blob/main/examples/agent_approval.py).
 
 ```python
 proposal = agent_propose(ticket)                     # e.g. {"tool": "issue_refund", "recommendation": "approve", ...}
@@ -225,7 +225,7 @@ To get a Slack message only when something is RED or newly drifting:
 stampcheck check --source "$DB_URL" --query "SELECT * FROM refund_reviews" --alert "slack:$SLACK_WEBHOOK_URL"
 ```
 
-"Newly" is judged against the previous `result.json` in the output folder. A ready-to-copy weekly GitHub Actions workflow is in [examples/github-actions/stampcheck.yml](examples/github-actions/stampcheck.yml).
+"Newly" is judged against the previous `result.json` in the output folder. A ready-to-copy weekly GitHub Actions workflow is in [examples/github-actions/stampcheck.yml](https://github.com/noahberry01123/stampcheck/blob/main/examples/github-actions/stampcheck.yml).
 
 ## Reviewers are people
 
@@ -249,4 +249,4 @@ Python 3.10 or newer. No runtime dependencies. MIT licence.
 
 These checks relate to GDPR Art. 22, which covers decisions based solely on automated processing (official guidance says human involvement only counts if it is meaningful, not a token rubber stamp), and to EU AI Act Art. 14, which requires effective human oversight of high-risk AI systems from December 2027. The tool gives you evidence about your review step. It isn't legal advice.
 
-Using this at work and need something for your DPO, auditor or a customer audit? Tell us what you need in [GitHub Discussion link placeholder].
+Using this at work and need something for your DPO, auditor or a customer audit? Tell us what you need in [GitHub Discussions](https://github.com/noahberry01123/stampcheck/discussions).
