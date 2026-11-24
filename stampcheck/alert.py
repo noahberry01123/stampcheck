@@ -5,7 +5,7 @@ import json
 from urllib.request import Request, urlopen
 
 from .checks import AMBER, RED
-from .config import NAME
+from .config import BRAND
 
 
 def parse_target(spec: str) -> str:
@@ -29,7 +29,7 @@ def should_alert(result: dict, previous: dict | None) -> bool:
 
 def message(result: dict, previous: dict | None, per_reviewer: bool, report: str) -> str:
     new = _drifting(result) - _drifting(previous)
-    lines = [f"*{NAME}*: an approval review check needs a look (data up to {result['period']['to'][:10]})"]
+    lines = [f"*{BRAND}*: an approval review check needs a look (data up to {result['period']['to'][:10]})"]
     for kind in ("steps", "reviewers") if per_reviewer else ("steps",):
         for name, item in sorted(result[kind].items()):
             hits = [f["message"] for f in item["findings"]

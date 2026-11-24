@@ -1,4 +1,4 @@
-# stampcheck
+# StampCheck
 
 **Find out whether the human approval step in your system still checks anything, or has quietly become a rubber stamp.**
 
@@ -60,7 +60,7 @@ Taylor is the interesting one: over the whole 8 weeks taylor's numbers look fine
 
 Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact.
 
-Most systems log when a reviewer **decided**. Very few log when the reviewer **opened** the case. Without `opened_at`, stampcheck estimates time per case from the timestamps you do have (see [Timing](#timing-with-and-without-opened_at)). Those estimates can prove that someone is fast, but not that they read carefully. `record_review` is a one-line way to log the exact time:
+Most systems log when a reviewer **decided**. Very few log when the reviewer **opened** the case. Without `opened_at`, StampCheck estimates time per case from the timestamps you do have (see [Timing](#timing-with-and-without-opened_at)). Those estimates can prove that someone is fast, but not that they read carefully. `record_review` is a one-line way to log the exact time:
 
 ```python
 import stampcheck
@@ -219,7 +219,7 @@ The report says which timing source it used for each reviewer:
 - **notified_at to decided_at**: includes time waiting in the queue, so it can only overstate the real time.
 - **Gaps between a reviewer's consecutive decisions**: the reviewer can't have spent longer on a case than the time since their previous decision. Gaps over 30 minutes count as breaks and are ignored.
 
-Without `opened_at`, stampcheck uses whichever of the two estimates is tighter. Both are upper bounds, so an estimate under 30 s is reliable evidence of speed. A longer estimate proves nothing either way: the reviewer might be reading, or the gaps might be waiting time. In that case a reviewer who agrees with almost everything gets AMBER, not GREEN, and the message says "Estimated from decision timestamps. Add opened_at logging for exact timings."
+Without `opened_at`, StampCheck uses whichever of the two estimates is tighter. Both are upper bounds, so an estimate under 30 s is reliable evidence of speed. A longer estimate proves nothing either way: the reviewer might be reading, or the gaps might be waiting time. In that case a reviewer who agrees with almost everything gets AMBER, not GREEN, and the message says "Estimated from decision timestamps. Add opened_at logging for exact timings."
 
 Every threshold lives in the config file (`stampcheck init` writes them all with comments), and every report prints the values it used.
 

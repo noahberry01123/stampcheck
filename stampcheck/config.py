@@ -5,7 +5,8 @@ import json
 import secrets
 from pathlib import Path
 
-NAME = "stampcheck"  # rename the tool here (also rename the package folder and pyproject.toml)
+NAME = "stampcheck"  # the command and package name (also rename the package folder and pyproject.toml)
+BRAND = "StampCheck"  # the product name wherever it appears in prose
 VERSION = "0.1.1"
 CONFIG_FILE = f"{NAME}.yaml"
 DB_FILE = f"{NAME}.db"

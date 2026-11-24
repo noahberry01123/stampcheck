@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>stampcheck: check your human approval step</title>
-<meta name="description" content="stampcheck reads the approval logs you already have and tells you when a human approval step has quietly become a rubber stamp.">
+<title>StampCheck: check your human approval step</title>
+<meta name="description" content="StampCheck reads the approval logs you already have and tells you when a human approval step has quietly become a rubber stamp.">
 <script>try { if (localStorage.getItem("stampcheck-theme") === "dark") document.documentElement.setAttribute("data-theme", "dark"); } catch (e) {}</script>
 <style>
 :root {
@@ -30,7 +30,7 @@ main { max-width: 760px; margin: 0 auto; padding: 56px 16px 64px; }
 }
 .theme:hover { border-color: var(--muted); }
 .theme:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.brand { font: 600 15px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink2); letter-spacing: .02em; }
+.brand { font: 800 18px/1 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); letter-spacing: -0.01em; }
 h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; letter-spacing: -0.02em; margin: 16px 0 20px; }
 h2 { font-size: 22px; margin: 48px 0 12px; }
 p { margin: 0 0 14px; color: var(--ink2); }
@@ -65,19 +65,19 @@ footer p { color: var(--muted); }
 <body>
 <main>
   <div class="top">
-    <div class="brand">stampcheck</div>
+    <div class="brand">StampCheck</div>
     <button class="theme" id="theme" type="button" aria-pressed="false">Dark mode</button>
   </div>
   <h1>Find out if your human approval step still checks anything</h1>
   <p class="lead">Many systems send automated decisions, like refunds, account locks, or content takedowns, to a person for approval.
     Over time, reviewers learn that the software is usually right and start approving almost everything in seconds, while the log still says "human reviewed".
-    stampcheck reads the approval logs you already have and tells you, in plain language, when a review step has stopped filtering anything.</p>
+    StampCheck reads the approval logs you already have and tells you, in plain language, when a review step has stopped filtering anything.</p>
 
   <h2>Try it</h2>
   <pre><span class="p">$ </span>pip install stampcheck
 <span class="p">$ </span>stampcheck demo</pre>
   <figure>
-    <img src="screenshot.png" alt="The stampcheck report for the built-in demo: verdicts per approval step and per reviewer" width="1400" height="1400">
+    <img src="screenshot.png" alt="The StampCheck report for the built-in demo: verdicts per approval step and per reviewer" width="1400" height="1400">
     <figcaption>The report from <code>stampcheck demo</code>. The demo uses synthetic data: an AI support agent recommends refunds, and fictional reviewers approve or reject them.</figcaption>
   </figure>
   <p class="note">Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact.</p>
@@ -87,7 +87,7 @@ footer p { color: var(--muted); }
   <h2>Three fingerprints it looks for</h2>
   <ol class="prints">
     <li><b>Agreeing with almost everything, in seconds</b><span>The reviewer almost never disagrees with the software and decides in under 30 seconds. The step adds delay and filters nothing.</span></li>
-    <li><b>Drifting from careful to fast</b><span>Minutes per case a month ago, seconds per case now. Averages over the whole period hide it, so stampcheck compares the last two weeks with the four before.</span></li>
+    <li><b>Drifting from careful to fast</b><span>Minutes per case a month ago, seconds per case now. Averages over the whole period hide it, so StampCheck compares the last two weeks with the four before.</span></li>
     <li><b>Timeouts that end in approval</b><span>Cases nobody reviewed before the deadline that went through anyway, because the timeout default fails open.</span></li>
   </ol>
   <p style="margin-top:14px">It also flags approvals executed more than once, logging that looks hard-coded, and queues too big to review properly.</p>
