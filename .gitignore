@@ -11,3 +11,6 @@ result.json
 
 # private launch drafts (article, Reddit posts, carousel, fact-check notes)
 launch/
+
+# private briefs used to plan the tool and the launch posts
+prompt_*.txt
