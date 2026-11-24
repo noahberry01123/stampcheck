@@ -7,7 +7,7 @@ import pytest
 import stampcheck
 from conftest import ROOT, verdicts
 from make_messy import build
-from stampcheck.checks import GREEN, GREY, run_all
+from stampcheck.checks import ESTIMATED, run_all
 from stampcheck.config import ConfigError, init_text, load_config, mini_yaml
 from stampcheck.record import write_rows
 from stampcheck.sources import InputError, load
@@ -36,16 +36,17 @@ def test_unmapped_values_are_listed_not_guessed(tmp_path):
         load(str(MESSY), load_config(str(columns_only)))
 
 
-def test_missing_opened_at_is_not_possible_not_green(demo_rows, th):
+def test_missing_opened_at_uses_estimates_and_never_a_false_green(demo_rows, th):
     for r in demo_rows:
         r["opened_at"] = None
     res = run_all(demo_rows, th)
-    rs = {n: r["findings"][0] for n, r in res["reviewers"].items()}
-    assert all(f["verdict"] == GREY for f in rs.values())
-    assert "rubber-stamp check not possible" in rs["sam"]["message"]
-    assert "record_review" in rs["sam"]["message"]
-    assert any("No opened_at column" in m for m in res["not_possible"])
-    assert GREEN not in {f["verdict"] for f in rs.values()}
+    sam = res["reviewers"]["sam"]["findings"][0]
+    # sam agrees with nearly everything; the estimated timing (an upper bound) can't prove speed here
+    assert sam["verdict"] == "AMBER" and "Speed can't be confirmed" in sam["message"]
+    assert ESTIMATED.strip() in sam["message"]
+    assert res["reviewers"]["sam"]["stats"]["source"] in ("gaps", "notified_at")
+    assert any(ESTIMATED.strip() in m for m in res["not_possible"])
+    assert not any(r["findings"][0]["verdict"] == "RED" for r in res["reviewers"].values())
 
 
 def test_csv_without_opened_at_column(tmp_path, demo_rows, th):
@@ -58,7 +59,8 @@ def test_csv_without_opened_at_column(tmp_path, demo_rows, th):
                         r["decided_at"].isoformat()])
     rows, q = load(str(path), load_config(auto=False))
     assert "opened_at" in q["missing_columns"]
-    assert run_all(rows, th)["reviewers"]["sam"]["findings"][0]["verdict"] == GREY
+    sam = run_all(rows, th)["reviewers"]["sam"]
+    assert sam["stats"]["source"] == "gaps" and sam["verdict"] == "AMBER"
 
 
 def test_record_review_round_trip(tmp_path, caplog):

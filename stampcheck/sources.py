@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .config import DECISIONS, FIELDS, NAME, RECOMMENDATIONS
 
-REQUIRED = ("case_id", "recommended", "decision", "decided_at")
+REQUIRED = ("case_id", "decision", "decided_at")  # without recommended, only the speed checks run
 TIMES = ("opened_at", "decided_at", "notified_at")
 ALLOWED = {"recommended": RECOMMENDATIONS, "decision": DECISIONS}
 BAD = "\0unreadable"
@@ -193,6 +193,9 @@ def convert(r: dict, cols: dict, values: dict, tz, unmapped, used, notes) -> tup
     if not rec["case_id"]:
         return None, "case_id missing"
     for f in ("recommended", "decision"):
+        if not cols[f]:  # only recommended can be absent (decision is required)
+            rec[f] = None
+            continue
         raw = text(f)
         if raw is None:
             return None, f"{f} missing"

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>stampcheck: check your human approval step</title>
+<meta name="description" content="stampcheck reads the approval logs you already have and tells you when a human approval step has quietly become a rubber stamp.">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #6b6a66;
+  --border: #e1e0d9; --code: #f0efec; --accent: #d03b3b; --link: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+    --border: #2c2c2a; --code: #232321; --accent: #e66767; --link: #6da7ec;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 760px; margin: 0 auto; padding: 56px 16px 64px; }
+.brand { font: 600 15px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink2); letter-spacing: .02em; }
+h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; letter-spacing: -0.02em; margin: 16px 0 20px; }
+h2 { font-size: 22px; margin: 48px 0 12px; }
+p { margin: 0 0 14px; color: var(--ink2); }
+p.lead { font-size: 19px; color: var(--ink); }
+a { color: var(--link); }
+pre {
+  background: var(--code); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  overflow-x: auto; font: 15px/1.6 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); margin: 0 0 16px;
+}
+pre .p { color: var(--muted); user-select: none; }
+figure { margin: 20px 0 8px; }
+figure img { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 10px; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.note { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; color: var(--ink); }
+ol.prints { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; counter-reset: n; }
+ol.prints li {
+  counter-increment: n; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px 14px 56px; position: relative;
+}
+ol.prints li::before {
+  content: counter(n); position: absolute; left: 16px; top: 14px; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--border); display: grid; place-items: center; font-size: 14px; font-weight: 700;
+}
+ol.prints b { display: block; color: var(--ink); }
+ol.prints span { color: var(--ink2); }
+ul.links { padding-left: 20px; margin: 0; }
+ul.links li { margin: 6px 0; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; color: var(--muted); }
+footer p { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">stampcheck</div>
+  <h1>Find out if your human approval step still checks anything</h1>
+  <p class="lead">Many systems send automated decisions, like refunds, account locks, or content takedowns, to a person for approval.
+    Over time, reviewers learn that the software is usually right and start approving almost everything in seconds, while the log still says "human reviewed".
+    stampcheck reads the approval logs you already have and tells you, in plain language, when a review step has stopped filtering anything.</p>
+
+  <h2>Try it</h2>
+  <pre><span class="p">$ </span>pip install stampcheck
+<span class="p">$ </span>stampcheck demo</pre>
+  <figure>
+    <img src="screenshot.png" alt="The stampcheck report for the built-in demo: verdicts per approval step and per reviewer" width="1400" height="1400">
+    <figcaption>The report from <code>stampcheck demo</code>. The demo uses synthetic data: an AI support agent recommends refunds, and fictional reviewers approve or reject them.</figcaption>
+  </figure>
+  <p class="note">Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact.</p>
+  <p>The minimum is who decided, what they decided, when, and what the system recommended. Without the recommendation, only the speed checks run. Which checks can run depends on your data, and the report lists any that couldn't.</p>
+  <p>It is read-only. It never blocks or changes a decision, and nothing leaves your machine except an optional Slack alert.</p>
+
+  <h2>Three fingerprints it looks for</h2>
+  <ol class="prints">
+    <li><b>Agreeing with almost everything, in seconds</b><span>The reviewer almost never disagrees with the software and decides in under 30 seconds. The step adds delay and filters nothing.</span></li>
+    <li><b>Drifting from careful to fast</b><span>Minutes per case a month ago, seconds per case now. Averages over the whole period hide it, so stampcheck compares the last two weeks with the four before.</span></li>
+    <li><b>Timeouts that end in approval</b><span>Cases nobody reviewed before the deadline that went through anyway, because the timeout default fails open.</span></li>
+  </ol>
+  <p style="margin-top:14px">It also flags approvals executed more than once, logging that looks hard-coded, and queues too big to review properly.</p>
+
+  <h2>Links</h2>
+  <ul class="links">
+    <li><a href="https://github.com/noahberry01123/stampcheck">Source code and documentation on GitHub</a></li>
+    <!-- TODO: replace this line with a link to the Medium article once it is published -->
+    <li>Article on Medium: coming soon</li>
+    <li><a href="https://github.com/noahberry01123/stampcheck/discussions">Questions, ideas, and what you found: GitHub Discussions</a></li>
+  </ul>
+
+  <footer>
+    <p>Patterns in review data are evidence to look into, not proof that anyone did anything wrong.</p>
+    <p>Free and open source (MIT licence). Made by Noah Berry.</p>
+  </footer>
+</main>
+</body>
+</html>

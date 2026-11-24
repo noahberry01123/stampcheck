@@ -39,58 +39,99 @@ def pct(x: float | None) -> str:
     return "n/a" if x is None else f"{x:.0%}" if x >= 0.1 or x == 0 else f"{x:.1%}"
 
 
-def stats(rows: list[dict]) -> dict:
-    """Disagreement and time-per-case figures for the cases a human actually decided."""
+# Where time per case comes from. opened_at is exact; the other two can only overstate the real time.
+SOURCES = {"opened_at": "opened_at (exact, the most precise)",
+           "notified_at": "notified_at to decided_at (an upper bound)",
+           "gaps": "gaps between consecutive decisions (an upper bound)"}
+ESTIMATED = " Estimated from decision timestamps. Add opened_at logging for exact timings."
+
+
+def annotate_gaps(rows: list[dict], th: dict) -> None:
+    """gap_s on each decided row: seconds since the same reviewer's previous decision. A reviewer can't
+    have spent longer than that on the case, so it is an upper bound. Longer gaps are breaks: left out."""
+    for rs in group([r for r in rows if r["reviewer"] and r["decision"] in DECIDED], "reviewer").values():
+        rs.sort(key=lambda r: r["decided_at"])
+        rs[0]["gap_s"] = None
+        for prev, cur in zip(rs, rs[1:]):
+            gap = (cur["decided_at"] - prev["decided_at"]).total_seconds()
+            cur["gap_s"] = gap if gap <= th["max_gap_seconds"] else None
+
+
+def stats(rows: list[dict], th: dict, source: str | None = None) -> dict:
+    """Disagreement and time per case for the cases a human actually decided. The timing source is
+    opened_at when there is enough of it, otherwise whichever upper-bound estimate is tighter."""
     decided = [r for r in rows if r["decision"] in DECIDED]
     n = len(decided)
-    k = sum(r["decision"] != r["recommended"] for r in decided)
-    times = [(r["decided_at"] - r["opened_at"]).total_seconds() for r in decided if r["opened_at"]]
-    waits = [(r["decided_at"] - r["notified_at"]).total_seconds() for r in decided
-             if r["notified_at"] and not r["opened_at"]]
-    return {"n": n, "disagree": k, "rate": k / n if n else None, "upper": wilson_upper(k, n),
-            "median_s": median(times) if times else None, "timed": len(times),
-            "median_from_notified_s": median(waits) if waits else None}
+    known = [r for r in decided if r["recommended"]]
+    k = sum(r["decision"] != r["recommended"] for r in known)
+    times = {"opened_at": [(r["decided_at"] - r["opened_at"]).total_seconds() for r in decided if r["opened_at"]],
+             "notified_at": [t for r in decided if r["notified_at"]
+                             and (t := (r["decided_at"] - r["notified_at"]).total_seconds()) >= 0],
+             "gaps": [r["gap_s"] for r in decided if r.get("gap_s") is not None]}
+    if source is None:
+        exact = times["opened_at"]
+        if len(exact) >= th["min_cases"] or (exact and len(exact) == n):
+            source = "opened_at"
+        else:
+            options = [(median(v), src) for src, v in times.items() if src != "opened_at" and len(v) >= th["min_cases"]]
+            source = min(options)[1] if options else None
+    sample = times[source] if source else []
+    return {"n": n, "disagree": k, "rate": k / len(known) if known else None,
+            "upper": wilson_upper(k, len(known)) if known else None,
+            "median_s": median(sample) if sample else None, "timed": len(sample), "source": source}
 
 
-def signs(s: dict, th: dict) -> tuple[bool, bool] | None:
-    """(agrees almost always, decides fast), or None when there is not enough timed data."""
-    if s["n"] < th["min_cases"] or s["timed"] < th["min_cases"]:
+def signs(s: dict, th: dict) -> tuple[bool | None, bool | None] | None:
+    """(agrees almost always, decides fast). Each is None when the data can't tell; None overall if too few cases.
+    An upper-bound timing under the threshold is reliable evidence of speed; above it, it proves nothing."""
+    if s["n"] < th["min_cases"]:
         return None
-    return s["upper"] < th["max_disagreement_upper"], s["median_s"] < th["max_median_seconds"]
+    agree = None if s["upper"] is None else s["upper"] < th["max_disagreement_upper"]
+    m = s["median_s"]
+    if m is None:
+        return agree, None
+    if m < th["max_median_seconds"]:
+        return agree, True
+    return agree, False if s["source"] == "opened_at" else None
 
 
 def finding(check: str, verdict: str, message: str, **data) -> dict:
     return {"check": check, "verdict": verdict, "message": message, "data": data}
 
 
+def timing(s: dict) -> str:
+    if s["source"] == "opened_at":
+        return f"median {fmt_s(s['median_s'])} from opening to decision"
+    if s["source"]:
+        return f"median at most {fmt_s(s['median_s'])} per case, from {SOURCES[s['source']]}"
+    return "no timestamps to estimate speed from"
+
+
 def rubber_stamp(rows: list[dict], th: dict) -> dict:
-    s = stats(rows)
+    s = stats(rows, th)
     n, k, minc = s["n"], s["disagree"], th["min_cases"]
-    agreed = f"agreed with the system on {n - k} of {n} decided cases"
     if n < minc:
         return finding("rubber_stamp", GREY, f"Only {n} decided cases; at least {minc} are needed to judge.", **s)
-    if s["timed"] < minc:
-        why = "No opened_at recorded" if s["timed"] == 0 else f"Only {s['timed']} of {n} cases have opened_at"
-        msg = f"{why}: rubber-stamp check not possible. Use record_review to start logging it."
-        if s["upper"] < th["max_disagreement_upper"]:
-            msg += f" Worth a look anyway: {agreed}."
-        if s["median_from_notified_s"] is not None:
-            msg += (f" Time from notification ({fmt_s(s['median_from_notified_s'])}) includes queue wait,"
-                    " so it can't tell reading from clicking.")
-        return finding("rubber_stamp", GREY, msg, **s)
     agree, fast = signs(s, th)
-    med = fmt_s(s["median_s"])
+    agreed, rate, when = f"agreed with the system on {n - k} of {n} decided cases", pct(s["rate"]), timing(s)
+    no_rec = "Agreement can't be checked without the system's recommendation."
     if agree and fast:
-        return finding("rubber_stamp", RED, f"Looks like rubber-stamping: {agreed}, median {med} from opening "
-                                            "to decision.", **s)
-    if agree:
-        return finding("rubber_stamp", AMBER, f"One warning sign: {agreed}, but a median of {med} per case "
-                                              "suggests the cases are being read.", **s)
-    if fast:
-        return finding("rubber_stamp", AMBER, f"One warning sign: fast (median {med} per case), but still "
-                                              f"disagrees with the system on {pct(s['rate'])} of cases.", **s)
-    return finding("rubber_stamp", GREEN, f"Engaged: disagrees with the system on {pct(s['rate'])} of cases, "
-                                          f"median {med} per case.", **s)
+        verdict, msg = RED, f"Looks like rubber-stamping: {agreed}, {when}."
+    elif agree and fast is False:
+        verdict, msg = AMBER, f"One warning sign: {agreed}, but a {when} suggests the cases are being read."
+    elif agree:
+        verdict, msg = AMBER, f"One warning sign: {agreed}. Speed can't be confirmed ({when})."
+    elif agree is False and fast:
+        verdict, msg = AMBER, f"One warning sign: fast ({when}), but still disagrees with the system on {rate} of cases."
+    elif agree is False:
+        verdict, msg = GREEN, f"Engaged: disagrees with the system on {rate} of cases ({when})."
+    elif fast:
+        verdict, msg = AMBER, f"One warning sign: fast ({when}). {no_rec}"
+    elif fast is False:
+        verdict, msg = GREEN, f"Not fast ({when}). {no_rec}"
+    else:
+        verdict, msg = GREY, f"Can't judge: no recommendation to compare against and no reliable timing ({when})."
+    return finding("rubber_stamp", verdict, msg + ("" if s["source"] == "opened_at" else ESTIMATED), **s)
 
 
 def weeks(days: float) -> str:
@@ -98,35 +139,41 @@ def weeks(days: float) -> str:
 
 
 def drift(rows: list[dict], th: dict, end: datetime) -> dict:
-    """Last drift_recent_days vs the drift_baseline_days before, both ending at `end`."""
+    """Last drift_recent_days vs the drift_baseline_days before, both ending at `end`, same timing source."""
+    src = stats(rows, th)["source"]
     recent_from = end - timedelta(days=th["drift_recent_days"])
     base_from = recent_from - timedelta(days=th["drift_baseline_days"])
-    a = stats([r for r in rows if base_from <= r["decided_at"] < recent_from])
-    b = stats([r for r in rows if r["decided_at"] >= recent_from])
+    a = stats([r for r in rows if base_from <= r["decided_at"] < recent_from], th, src)
+    b = stats([r for r in rows if r["decided_at"] >= recent_from], th, src)
     span = f"the last {weeks(th['drift_recent_days'])} vs the {weeks(th['drift_baseline_days'])} before"
     minc = th["min_cases"]
     if min(a["n"], b["n"]) < minc:
         return finding("drift", GREY, f"Not enough cases to compare {span} ({b['n']} vs {a['n']}; "
                                       f"need {minc} in each).", baseline=a, recent=b)
+    est = "" if src == "opened_at" else " (estimated)"
     trends = []
     if min(a["timed"], b["timed"]) >= minc and b["median_s"] <= a["median_s"] * (1 - th["drift_change"]):
-        trends.append(f"time per case went from {fmt_s(a['median_s'])} to {fmt_s(b['median_s'])}")
-    if b["upper"] < a["rate"]:
+        trends.append(f"time per case went from {fmt_s(a['median_s'])} to {fmt_s(b['median_s'])}{est}")
+    if a["rate"] is not None and b["upper"] < a["rate"]:
         trends.append(f"disagreement fell from {pct(a['rate'])} to {pct(b['rate'])}")
     trend = " and ".join(trends)
-    zone_a, zone_b = signs(a, th) == (True, True), signs(b, th) == (True, True)
-    if zone_b and not zone_a:
+    sa, sb = signs(a, th), signs(b, th)
+    zone_a, zone_b = sa == (True, True), sb == (True, True)
+    if zone_b and False in sa:
         return finding("drift", RED, f"Drifted into the rubber-stamp zone: {trend or 'now agrees and decides fast'}"
                                      f" ({span}).", baseline=a, recent=b)
+    if zone_b and not zone_a:
+        return finding("drift", RED, f"In the rubber-stamp zone over the last {weeks(th['drift_recent_days'])}. "
+                                     "The earlier period can't be compared reliably.", baseline=a, recent=b)
     if trend and not zone_b:
         return finding("drift", AMBER, f"Trending toward rubber-stamping: {trend} ({span}), not in the "
                                        "rubber-stamp zone yet.", baseline=a, recent=b)
     if zone_a and zone_b:
         return finding("drift", GREEN, "No change: already in the rubber-stamp zone in both periods.",
                        baseline=a, recent=b)
-    return finding("drift", GREEN, f"Stable: median {fmt_s(a['median_s'])} then {fmt_s(b['median_s'])} per case, "
-                                   f"disagreement {pct(a['rate'])} then {pct(b['rate'])} ({span}).",
-                   baseline=a, recent=b)
+    rates = f", disagreement {pct(a['rate'])} then {pct(b['rate'])}" if a["rate"] is not None else ""
+    return finding("drift", GREEN, f"Stable: median {fmt_s(a['median_s'])} then {fmt_s(b['median_s'])} per case{est}"
+                                   f"{rates} ({span}).", baseline=a, recent=b)
 
 
 def timeouts(rows: list[dict], th: dict) -> dict:
@@ -165,6 +212,8 @@ def logging_quality(rows: list[dict], th: dict) -> dict:
                        suspicious=[])
     issues, suspicious = [], []
     for col in ("recommended", "decision"):
+        if all(r[col] is None for r in rows):
+            continue
         top = Counter(r[col] for r in rows).most_common(2)
         share, second = top[0][1] / len(rows), top[1][1] if len(top) > 1 else 0
         if share >= th["logging_dominant_share"] or second < th["logging_min_second_value"]:
@@ -196,10 +245,10 @@ def worst(findings: list[dict]) -> str:
     return max((f["verdict"] for f in findings), key=RANK.get, default=GREY)
 
 
-def weekly(rows: list[dict]) -> list[dict]:
+def weekly(rows: list[dict], th: dict, source: str | None) -> list[dict]:
     by_week = group(rows, lambda r: (r["decided_at"].date() - timedelta(days=r["decided_at"].weekday())).isoformat())
     return [{"week": w, **{k: s[k] for k in ("n", "rate", "median_s")}}
-            for w, s in ((w, stats(rs)) for w, rs in sorted(by_week.items()))]
+            for w, s in ((w, stats(rs, th, source)) for w, rs in sorted(by_week.items()))]
 
 
 def group(rows: list[dict], key: str | Callable) -> dict[str, list[dict]]:
@@ -233,6 +282,7 @@ def run_all(rows: list[dict], th: dict, quality: dict | None = None) -> dict:
     """Run every check per approval step and per reviewer. Returns a JSON-ready result."""
     last = max(r["decided_at"] for r in rows)
     end = datetime.combine(last.date() + timedelta(days=1), time.min, tzinfo=timezone.utc)
+    annotate_gaps(rows, th)
     steps = group(rows, "category")
     step_logging = {s: logging_quality(rs, th) for s, rs in steps.items()}
     untrusted = {s for s, f in step_logging.items() if "recommended" in f["data"]["suspicious"]}
@@ -246,8 +296,9 @@ def run_all(rows: list[dict], th: dict, quality: dict | None = None) -> dict:
         their_steps = sorted({r["category"] for r in rs})
         if untrusted & set(their_steps):
             _cap(fs, "the system's recommendation barely varies in this step")
-        reviewers[name] = {"verdict": worst(fs), "steps": their_steps, "stats": stats(rs), "per_day": per_day(rs),
-                           "findings": fs, "weekly": weekly(rs)}
+        st = stats(rs, th)
+        reviewers[name] = {"verdict": worst(fs), "steps": their_steps, "stats": st, "per_day": per_day(rs),
+                           "findings": fs, "weekly": weekly(rs, th, st["source"])}
 
     out_steps = {}
     for step, rs in sorted(steps.items()):
@@ -261,8 +312,9 @@ def run_all(rows: list[dict], th: dict, quality: dict | None = None) -> dict:
         if len(names) > 1:  # with one reviewer the step-level findings already say it
             fs.insert(0, _rollup([reviewers[n] for n in names]))
         verdict = worst(fs)
-        out_steps[step] = {"verdict": verdict, "summary": _summary(fs, verdict), "stats": stats(rs),
-                           "reviewers": len(names), "findings": fs, "weekly": weekly(rs)}
+        st = stats(rs, th)
+        out_steps[step] = {"verdict": verdict, "summary": _summary(fs, verdict), "stats": st,
+                           "reviewers": len(names), "findings": fs, "weekly": weekly(rs, th, st["source"])}
 
     verdicts = [s["verdict"] for s in out_steps.values()] + [r["verdict"] for r in reviewers.values()]
     return {"tool": NAME, "version": VERSION, "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -293,7 +345,11 @@ def _rollup(revs: list[dict]) -> dict:
 def not_possible(rows: list[dict]) -> list[str]:
     out = []
     if all(r["opened_at"] is None for r in rows):
-        out.append("No opened_at column: rubber-stamp check not possible. Use record_review to start logging it.")
+        out.append("No opened_at column." + ESTIMATED if any(r["notified_at"] or r["reviewer"] for r in rows) else
+                   "No opened_at, notified_at, or reviewer column: speed can't be estimated, so only the agreement "
+                   "checks run. Add opened_at logging for exact timings.")
+    if all(r["recommended"] is None for r in rows):
+        out.append("No recommended column: agreement with the system can't be checked, so only the speed checks run.")
     if all(r["reviewer"] is None for r in rows):
         out.append("No reviewer column: per-reviewer checks and queue load not possible.")
     if all(r["executed"] is None for r in rows):

@@ -21,6 +21,7 @@ THRESHOLDS: dict[str, float] = {
     "min_cases": 30,
     "max_disagreement_upper": 0.05,
     "max_median_seconds": 30,
+    "max_gap_seconds": 1800,
     "drift_recent_days": 14,
     "drift_baseline_days": 28,
     "drift_change": 0.5,
@@ -166,7 +167,8 @@ INIT_TEMPLATE = """\
 thresholds:
   min_cases: 30                 # decided cases needed before a reviewer or step is judged
   max_disagreement_upper: 0.05  # sign 1: 95% upper bound on the disagreement rate is below this
-  max_median_seconds: 30        # sign 2: median time from opened_at to decided_at is below this
+  max_median_seconds: 30        # sign 2: median time per case is below this
+  max_gap_seconds: 1800         # without opened_at: gaps between a reviewer's decisions longer than this are breaks
   drift_recent_days: 14         # drift compares the most recent N days...
   drift_baseline_days: 28       # ...with the N days before that
   drift_change: 0.5             # time per case falling by 50% or more counts as a trend
@@ -174,14 +176,17 @@ thresholds:
   logging_min_second_value: 5   # so does a second value seen fewer than 5 times
   queue_max_per_day: 200        # decided cases per reviewer per working day
 
-# Which column in your data holds each field. Columns with common names are found automatically,
-# and the check prints the mapping it used. Set a field to null if your data does not have it.
+# Which column in your data holds each field. Columns with common names are found automatically, and
+# the check prints the mapping it used. Set a field to null if your data does not have it.
+# The minimum is who decided (reviewer), what they decided (decision), when (decided_at), and what the
+# system recommended (recommended). Without the recommendation, only the speed checks run.
+# opened_at is optional, but it makes the timings exact.
 columns:
   # case_id: ticket_id
   # recommended: ai_suggestion     # what the system proposed
   # decision: final_status         # what the human did
   # reviewer: handled_by
-  # opened_at: first_opened_at     # when the reviewer opened the case: the important one
+  # opened_at: first_opened_at     # when the reviewer opened the case: makes timings exact
   # decided_at: closed_at
   # notified_at: queued_at
   # category: refund_band          # approval step or category; each one gets its own verdict

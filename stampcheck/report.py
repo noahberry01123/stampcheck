@@ -11,10 +11,12 @@ from datetime import date
 from html import escape
 from pathlib import Path
 
-from .checks import RANK, fmt_s, pct
+from .checks import RANK, SOURCES, fmt_s, pct
 from .config import NAME
 
 ANSI = {"RED": "\033[1;31m", "AMBER": "\033[1;33m", "GREEN": "\033[1;32m", "GREY": "\033[2m"}
+SHORT = {"opened_at": "opened_at (exact)", "notified_at": "notified_at (upper bound)",
+         "gaps": "decision gaps (upper bound)"}
 TOKEN = {"RED": "critical", "AMBER": "warning", "GREEN": "good", "GREY": "muted"}
 
 
@@ -33,8 +35,9 @@ def reason(item: dict) -> str:
 def thresholds_text(th: dict) -> list[str]:
     return [
         f"Rubber-stamping needs at least {th['min_cases']:g} decided cases, a 95% upper bound on the disagreement "
-        f"rate below {th['max_disagreement_upper']:.0%}, and a median time from opened to decided below "
-        f"{th['max_median_seconds']:g} s.",
+        f"rate below {th['max_disagreement_upper']:.0%}, and a median time per case below "
+        f"{th['max_median_seconds']:g} s. Without opened_at, gaps over {th['max_gap_seconds'] / 60:g} minutes between "
+        "a reviewer's decisions count as breaks.",
         f"Drift compares the last {th['drift_recent_days']:g} days with the {th['drift_baseline_days']:g} days "
         f"before. A trend is time per case falling by {th['drift_change']:.0%} or more, or disagreement falling "
         f"significantly. It is RED once the recent period is in the rubber-stamp zone.",
@@ -88,6 +91,11 @@ def terminal(result: dict, report_dir: Path, color: bool | None = None) -> str:
     lines += block("Approval steps", result["steps"])
     if result["reviewers"]:
         lines += block("Reviewers", result["reviewers"])
+        by_src: dict = {}
+        for name, r in sorted(result["reviewers"].items()):
+            by_src.setdefault(r["stats"]["source"], []).append(name)
+        lines += [f"Timing from {SOURCES.get(src, 'no timestamps')}: {', '.join(names)}" for src, names in by_src.items()]
+        lines += [""]
     lines += textwrap.wrap("Thresholds: " + " ".join(thresholds_text(result["thresholds"])), width,
                            break_on_hyphens=False) + [""]
     lines.append(f"Report: {report_dir / 'report.html'}   Result: {report_dir / 'result.json'}")
@@ -162,10 +170,12 @@ def scatter(points: list[tuple[str, dict, str]], th: dict) -> str:
         while any(abs(cx - px) < 70 and abs(ly - py) < 13 for px, py in placed):
             ly -= 13
         placed.append((cx, ly))
-        tip = f"{name}: {s['n']} cases, disagrees {pct(s['rate'])}, median {fmt_s(s['median_s'])} ({verdict})"
+        tip = (f"{name}: {s['n']} cases, disagrees {pct(s['rate'])}, median {fmt_s(s['median_s'])} "
+               f"from {SOURCES[s['source']]} ({verdict})")
+        dot = (f'fill="var(--{TOKEN[verdict]})" stroke="var(--surface)"' if s["source"] == "opened_at"
+               else f'fill="var(--surface)" stroke="var(--{TOKEN[verdict]})"')
         out.append(f'<g><title>{escape(tip)}</title><circle cx="{cx:.1f}" cy="{cy:.1f}" r="12" fill="transparent"/>'
-                   f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill="var(--{TOKEN[verdict]})" stroke="var(--surface)" '
-                   f'stroke-width="2"/><text x="{cx + 10:.1f}" y="{ly:.1f}" style="fill:var(--ink)">'
+                   f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" {dot} stroke-width="2"/><text x="{cx + 10:.1f}" y="{ly:.1f}" style="fill:var(--ink)">'
                    f'{escape(name)}</text></g>')
     return "".join(out) + "</svg>"
 
@@ -221,26 +231,30 @@ def html(result: dict) -> str:
         trs = "".join(
             f"<tr><td>{pill(r['verdict'])}</td><td><b>{e(n)}</b></td><td class='num'>{r['stats']['n']}</td>"
             f"<td class='num'>{pct(r['stats']['rate'])}</td><td class='num'>{pct(r['stats']['upper'])}</td>"
-            f"<td class='num'>{fmt_s(r['stats']['median_s'])}</td><td class='num'>"
+            f"<td class='num'>{fmt_s(r['stats']['median_s'])}</td><td>{e(SHORT.get(r['stats']['source'], 'none'))}</td>"
+            f"<td class='num'>"
             f"{'n/a' if r['per_day'] is None else round(r['per_day'])}</td><td>"
             f"{e(reason(r))}</td></tr>"
             for n, r in by_severity(result["reviewers"]))
         parts.append("<h2>Reviewers</h2><div class='card'><table><tr><th>Verdict</th><th>Reviewer</th><th>Cases</th>"
-                     "<th>Disagrees</th><th>Upper bound</th><th>Median time</th><th>Cases/day</th><th>Why</th>"
+                     "<th>Disagrees</th><th>Upper bound</th><th>Median time</th><th>Timing from</th><th>Cases/day</th><th>Why</th>"
                      f"</tr>{trs}</table></div>")
-    points = [(n, s["stats"], s["verdict"]) for n, s in subjects.items() if s["stats"]["median_s"] is not None]
-    left_out = [n for n, s in subjects.items() if s["stats"]["median_s"] is None]
+    plotted = lambda st: st["median_s"] is not None and st["rate"] is not None  # noqa: E731
+    points = [(n, s["stats"], s["verdict"]) for n, s in subjects.items() if plotted(s["stats"])]
+    left_out = [n for n, s in subjects.items() if not plotted(s["stats"])]
     parts.append(f"<h2>Time per case vs disagreement</h2><div class='card'>"
-                 f"{scatter(points, th) if points else '<p>No opened_at data, so there is nothing to plot.</p>'}"
+                 f"{scatter(points, th) if points else '<p>Not enough timing and recommendation data to plot.</p>'}"
                  f"<p class='note'>One dot per {kind}. The shaded corner is where the rubber-stamp zone starts: "
                  f"under {th['max_median_seconds']:g} s per case and almost never disagreeing (the exact test uses "
-                 f"the upper bound, so it depends on the number of cases)."
-                 + (f" Not shown (no opened_at): {e(', '.join(left_out))}." if left_out else "") + "</p></div>")
+                 f"the upper bound, so it depends on the number of cases). Hollow dots use estimated timings, "
+                 "which are upper bounds."
+                 + (f" Not shown (no timing or recommendation): {e(', '.join(left_out))}." if left_out else "")
+                 + "</p></div>")
     trend = "".join(f"<div class='name'>{e(n)}</div><div>{sparkline(s['weekly'], 'median_s', th['max_median_seconds'], True)}"
                     f"</div><div>{sparkline(s['weekly'], 'rate', th['max_disagreement_upper'], False)}</div>"
                     for n, s in sorted(subjects.items()))
     parts.append(f"<h2>Weekly trend</h2><div class='card'><div class='trend'><div></div><div class='note'>Median time "
-                 "per case (log scale)</div><div class='note'>Disagrees with the system</div>"
+                 "per case (log scale; estimated where there is no opened_at)</div><div class='note'>Disagrees with the system</div>"
                  f"{trend}</div><p class='note'>Dashed lines are the thresholds. Hover a point for the week and "
                  "number of cases.</p></div>")
 
@@ -249,8 +263,11 @@ def html(result: dict) -> str:
         "recommended (escalating counts as disagreeing). Timeouts are left out because nobody decided.",
         "Upper bound: the Wilson 95% interval's upper end for that rate. With few cases a 0% rate is weak evidence; "
         "the upper bound says how high the true rate could plausibly be.",
-        "Median time per case: half of the decisions took less than this, measured from opened_at to decided_at. "
-        "Time from notified_at is never used, because it includes time spent waiting in the queue.",
+        "Median time per case: half of the decisions took less than this. It comes from opened_at to decided_at "
+        "when opened_at is logged, which is the most precise source. Without it, stampcheck estimates from "
+        "notified_at to decided_at, or from the gaps between a reviewer's consecutive decisions. Both can only "
+        "overstate the real time, so an estimate under the threshold is reliable evidence of speed, while a "
+        "longer one proves nothing either way.",
         "Drift: the same figures for the most recent period against the period before, so a slow slide shows up.",
         "Cases per day: decided cases per reviewer on the days they worked.",
     ]

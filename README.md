@@ -2,6 +2,8 @@
 
 **Find out whether the human approval step in your system still checks anything, or has quietly become a rubber stamp.**
 
+Website: [noahberry01123.github.io/stampcheck](https://noahberry01123.github.io/stampcheck/)
+
 ```bash
 pip install stampcheck
 stampcheck demo
@@ -10,6 +12,8 @@ stampcheck demo
 ![The report from stampcheck demo](https://raw.githubusercontent.com/noahberry01123/stampcheck/main/docs/screenshot.png)
 
 `stampcheck demo` builds 8 weeks of synthetic refund approvals, checks them, prints a summary, and writes `report.html`. It takes a few seconds and needs no setup.
+
+Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact.
 
 ## Why this exists
 
@@ -41,17 +45,22 @@ Reviewers
                  median 4 s from opening to decision.
   RED    taylor  Drifted into the rubber-stamp zone: time per case went from 1 min 32 s to 6 s and
                  disagreement fell from 9.6% to 0% (the last 2 weeks vs the 4 weeks before).
-  AMBER  jordan  One warning sign: fast (median 12 s per case), but still disagrees with the system
-                 on 13% of cases.
-  GREEN  alex    Engaged: disagrees with the system on 10% of cases, median 2 min 33 s per case.
+  AMBER  jordan  One warning sign: fast (median 12 s from opening to decision), but still disagrees
+                 with the system on 13% of cases.
+  GREEN  alex    Engaged: disagrees with the system on 10% of cases (median 2 min 33 s from opening
+                 to decision).
   GREY   kim     Only 12 decided cases; at least 30 are needed to judge.
+
+Timing from opened_at (exact, the most precise): alex, jordan, kim, sam, taylor
 ```
 
 Taylor is the interesting one: over the whole 8 weeks taylor's numbers look fine. Only the drift check, which compares the last 2 weeks with the 4 weeks before, catches the slide.
 
-## Start logging the one field you are probably missing
+## Make the timings exact: log when the case was opened
 
-Most systems log when a reviewer **decided**. Very few log when the reviewer **opened** the case. Without `opened_at` you cannot tell a reviewer who read the case for two minutes from one who clicked approve two seconds after it appeared, so the rubber-stamp check cannot run. `record_review` is a one-line way to log it:
+Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact.
+
+Most systems log when a reviewer **decided**. Very few log when the reviewer **opened** the case. Without `opened_at`, stampcheck estimates time per case from the timestamps you do have (see [Timing](#timing-with-and-without-opened_at)). Those estimates can prove that someone is fast, but not that they read carefully. `record_review` is a one-line way to log the exact time:
 
 ```python
 import stampcheck
@@ -61,7 +70,7 @@ stampcheck.record_review(
     recommended="approve",          # what the system proposed: "approve" or "reject"
     decision="approve",             # what the human did: "approve", "reject" or "escalate"
     reviewer="sam",
-    opened_at=opened_at,            # when the reviewer opened the case  <- the important one
+    opened_at=opened_at,            # when the reviewer opened the case: makes timings exact
     decided_at=decided_at,          # when they decided
     notified_at=queued_at,          # optional: when the case entered the queue
     category="refund_under_50",     # optional: the approval step; each gets its own verdict
@@ -138,18 +147,18 @@ pip install "stampcheck[postgres]"
 stampcheck check --source "postgresql://readonly@db/app" --query "SELECT * FROM refund_reviews"
 ```
 
-The check needs one row per reviewed case with these fields:
+The check needs one row per reviewed case. The minimum is who decided, what they decided, when, and what the system recommended. Without the recommendation, only the speed checks run. Which checks can run depends on your data, and the output lists any that couldn't.
 
-| Field | Required | Meaning |
+| Field | Needed | Meaning |
 |---|---|---|
 | `case_id` | yes | ID of the case or approval request |
-| `recommended` | yes | What the system proposed: `approve` or `reject` |
 | `decision` | yes | What happened: `approve`, `reject`, `escalate`, `timeout_approve`, `timeout_reject` |
 | `decided_at` | yes | When the decision was made (for timeouts: when the deadline passed) |
-| `opened_at` | for the rubber-stamp check | When the reviewer opened the case |
-| `reviewer` | for per-reviewer checks | Who decided |
+| `reviewer` | for per-reviewer checks and gap-based timing | Who decided |
+| `recommended` | for the agreement checks | What the system proposed: `approve` or `reject` |
+| `opened_at` | no, but makes timings exact | When the reviewer opened the case |
+| `notified_at` | no | When the case entered the queue. Used as an upper-bound timing when `opened_at` is missing |
 | `category` | no | The approval step, e.g. refund size band. Each one gets its own verdict |
-| `notified_at` | no | When the case entered the queue. Shown for context only, never used for verdicts |
 | `executed` | for the duplicate check | How many times the approved action ran. Several rows per case are summed |
 
 Common column names are recognised automatically (`id`, `ticket_id`, `reviewed_by`, `first_viewed_at`, `closed_at`, `outcome`, and more). The check always prints the mapping it used. If your names differ, write a mapping file:
@@ -193,14 +202,24 @@ Each check gives a verdict (GREEN, AMBER, RED, or GREY for "not enough data") an
 
 | Check | RED / AMBER when | What it usually means |
 |---|---|---|
-| Rubber-stamping | RED: at least 30 decided cases, the 95% upper bound on the disagreement rate is under 5%, **and** the median time from opened to decided is under 30 s. AMBER: only one of the two | Reviewers click through. The step filters nothing |
+| Rubber-stamping | RED: at least 30 decided cases, the 95% upper bound on the disagreement rate is under 5%, **and** the median time per case is under 30 s. AMBER: only one of the two | Reviewers click through. The step filters nothing |
 | Drift | RED: the last 2 weeks are in the rubber-stamp zone and the 4 weeks before were not. AMBER: time per case fell by half or more, or disagreement fell clearly | A careful reviewer or team is sliding toward rubber-stamping |
 | Silent timeout approvals | RED: any case nobody reviewed before the deadline that still ended in approval | A timeout default that fails open |
 | Duplicate execution | RED: one approval used for more than one action | A retry or idempotency bug |
 | Suspicious logging | AMBER: `recommended` or `decision` has one value on 99% or more of rows, or the second value appears fewer than 5 times | The column may be hard-coded. Findings built on it are not trusted |
 | Queue overload | AMBER: more than 200 decided cases per reviewer per working day | Shown as the likely cause next to a rubber-stamp finding |
 
-Disagreement means the human did something other than what the system recommended (escalating counts). The upper bound is the Wilson 95% interval: with few cases, a 0% rate is weak evidence, so the check asks how high the true rate could plausibly be. Time per case always comes from `opened_at`, never `notified_at`, because time since notification includes time waiting in the queue.
+Disagreement means the human did something other than what the system recommended (escalating counts). The upper bound is the Wilson 95% interval: with few cases, a 0% rate is weak evidence, so the check asks how high the true rate could plausibly be.
+
+### Timing with and without opened_at
+
+The report says which timing source it used for each reviewer:
+
+- **opened_at to decided_at**: exact, and the most precise. Used whenever `opened_at` is logged.
+- **notified_at to decided_at**: includes time waiting in the queue, so it can only overstate the real time.
+- **Gaps between a reviewer's consecutive decisions**: the reviewer can't have spent longer on a case than the time since their previous decision. Gaps over 30 minutes count as breaks and are ignored.
+
+Without `opened_at`, stampcheck uses whichever of the two estimates is tighter. Both are upper bounds, so an estimate under 30 s is reliable evidence of speed. A longer estimate proves nothing either way: the reviewer might be reading, or the gaps might be waiting time. In that case a reviewer who agrees with almost everything gets AMBER, not GREEN, and the message says "Estimated from decision timestamps. Add opened_at logging for exact timings."
 
 Every threshold lives in the config file (`stampcheck init` writes them all with comments), and every report prints the values it used.
 
