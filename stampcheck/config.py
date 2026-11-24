@@ -6,7 +6,7 @@ import secrets
 from pathlib import Path
 
 NAME = "stampcheck"  # rename the tool here (also rename the package folder and pyproject.toml)
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 CONFIG_FILE = f"{NAME}.yaml"
 DB_FILE = f"{NAME}.db"
 ENV_PATH = f"{NAME.upper()}_PATH"
