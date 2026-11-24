@@ -7,12 +7,6 @@ pip install stampcheck
 stampcheck demo
 ```
 
-Until the first PyPI release is out, install from GitHub instead:
-
-```bash
-pip install "git+https://github.com/noahberry01123/stampcheck.git"
-```
-
 ![The report from stampcheck demo](https://raw.githubusercontent.com/noahberry01123/stampcheck/main/docs/screenshot.png)
 
 `stampcheck demo` builds 8 weeks of synthetic refund approvals, checks them, prints a summary, and writes `report.html`. It takes a few seconds and needs no setup.
