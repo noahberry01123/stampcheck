@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://noahberry01123.github.io/stampcheck/"
+Homepage = "https://stampcheck.io"
 Repository = "https://github.com/noahberry01123/stampcheck"
 Issues = "https://github.com/noahberry01123/stampcheck/issues"
 Discussions = "https://github.com/noahberry01123/stampcheck/discussions"

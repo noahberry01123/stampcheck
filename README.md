@@ -2,7 +2,7 @@
 
 **Find out whether the human approval step in your system still checks anything, or has quietly become a rubber stamp.**
 
-Website: [noahberry01123.github.io/stampcheck](https://noahberry01123.github.io/stampcheck/)
+Website: [stampcheck.io](https://stampcheck.io)
 
 ```bash
 pip install stampcheck
