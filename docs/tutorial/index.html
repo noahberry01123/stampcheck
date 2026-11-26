@@ -113,7 +113,7 @@ footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--border
   </nav>
 
   <h1>Try StampCheck yourself</h1>
-  <p class="lead">A hands-on tour. It takes about 20 minutes, and every command was tested on StampCheck 0.1.2 from PyPI. You'll run the demo, read the report, change the data to see what StampCheck does with less information, and then review fake refunds yourself and let StampCheck judge you.</p>
+  <p class="lead">A hands-on tour. It takes about 20 minutes, and every command was tested on StampCheck 0.1.3 from PyPI. You'll run the demo, read the report, change the data to see what StampCheck does with less information, and then review fake refunds yourself and let StampCheck judge you.</p>
   <p>Everything happens in a throwaway folder, so nothing touches your own projects.</p>
 
   <div class="os" role="group" aria-label="Show commands for">
@@ -139,7 +139,7 @@ py -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install stampcheck
 curl.exe -O https://raw.githubusercontent.com/noahberry01123/stampcheck/main/examples/play_reviewer.py</pre></div>
-    <p class="result">Check that it worked: <code>stampcheck --version</code> should print <code>stampcheck 0.1.2</code>.</p>
+    <p class="result">Check that it worked: <code>stampcheck --version</code> should print <code>stampcheck 0.1.3</code>.</p>
     <p>If you open a new terminal window later, start with:</p>
     <div class="cmd unix"><pre>cd ~/stampcheck-playground &amp;&amp; source .venv/bin/activate</pre></div>
     <div class="cmd win"><pre>cd ~\stampcheck-playground; .venv\Scripts\Activate.ps1</pre></div>
@@ -149,9 +149,7 @@ curl.exe -O https://raw.githubusercontent.com/noahberry01123/stampcheck/main/exa
   <section class="card">
     <h2><span class="n">2</span>Run the demo</h2>
     <div class="cmd"><pre>stampcheck demo</pre></div>
-    <p>Then open <code>report.html</code> in your browser:</p>
-    <div class="cmd unix"><pre>open report.html          <span class="c"># Linux: xdg-open report.html</span></pre></div>
-    <div class="cmd win"><pre>start report.html</pre></div>
+    <p class="result">The report opens in your browser. The last lines in the terminal say where it's saved and how to open it again.</p>
     <figure>
       <img src="demo-report.png" width="1000" height="903" alt="The demo report. Approval steps: refund_50_to_500 RED (drift and 25 timeout approvals), refund_under_50 RED (one rubber-stamper and a refund paid 3 times), refund_over_500 GREEN. Reviewers: sam RED, taylor RED, jordan AMBER, alex GREEN, kim GREY.">
       <figcaption>sam is RED: agreed with the AI on 218 of 219 cases, in a median of 4 seconds.</figcaption>
@@ -215,7 +213,7 @@ curl.exe -O https://raw.githubusercontent.com/noahberry01123/stampcheck/main/exa
   <!-- 4 -->
   <section class="card">
     <h2><span class="n">4</span>Experiments</h2>
-    <p>Give each experiment its own <code>--out</code> folder, so the reports don't overwrite each other. To view a report, open the folder's <code>report.html</code> in your browser.</p>
+    <p>Give each experiment its own <code>--out</code> folder, so the reports don't overwrite each other. Each check ends with the command to open its report.</p>
 
     <h3>A. What if you never logged when cases were opened?</h3>
     <p>Most real systems don't log <code>opened_at</code>. Remove it and see what happens:</p>
@@ -258,10 +256,8 @@ stampcheck check --source no_recommendation.csv --out results-no-rec</pre></div>
     <p>Round 2, as a rubber-stamper (80 cases). Just hold down Enter, which means "go with the AI":</p>
     <div class="cmd"><pre>python play_reviewer.py fast 80</pre></div>
     <p>Then let StampCheck judge you:</p>
-    <div class="cmd unix"><pre>stampcheck check --source my_reviews.db --out results-me
-open results-me/report.html          <span class="c"># Linux: xdg-open results-me/report.html</span></pre></div>
-    <div class="cmd win"><pre>stampcheck check --source my_reviews.db --out results-me
-start results-me\report.html</pre></div>
+    <div class="cmd"><pre>stampcheck check --source my_reviews.db --out results-me</pre></div>
+    <p>Open the report with the command it prints at the end.</p>
     <figure>
       <img src="be-the-reviewer.png" width="1000" height="523" alt="Example result: reviewer fast is RED, agreed with the system on 80 of 80 decided cases, median 0 s; reviewer careful is AMBER, fast with a median of 12 s but still disagrees with the system on 30% of cases.">
       <figcaption>Example result: fast is RED (80 of 80 agreed, median 0 s). careful is AMBER (fast, but disagreed on 30%).</figcaption>

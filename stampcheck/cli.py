@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shlex
 import sys
+import webbrowser
 from pathlib import Path
 
 from . import alert, demo, report
@@ -15,7 +18,7 @@ from .sources import InputError, load, pseudonymize
 
 def check(source: str, out: str = ".", config: str | None = None, query: str | None = None,
           alert_to: str | None = None, per_reviewer: bool = False, pseudonym: bool = False,
-          auto_config: bool = True) -> int:
+          auto_config: bool = True, open_browser: bool = False) -> int:
     try:
         url = alert.parse_target(alert_to) if alert_to else None
         cfg = load_config(config, auto=auto_config)
@@ -38,7 +41,16 @@ def check(source: str, out: str = ".", config: str | None = None, query: str | N
             previous = None
     report.write_json(result, out_dir / "result.json")
     report.write_html(result, out_dir / "report.html")
-    print(report.terminal(result, out_dir))
+    print(report.terminal(result, out_dir) + "\n")
+    html_path, opened = out_dir / "report.html", False
+    if open_browser:
+        try:
+            opened = webbrowser.open(html_path.resolve().as_uri())
+        except Exception:  # noqa: BLE001 (no browser here is fine; the path is printed below)
+            opened = False
+    print(f"Report saved to: {html_path.resolve()}")
+    print(f"To open it{' again' if opened else ''}: {open_command(html_path)}")
+    print(f"Result data: {(out_dir / 'result.json').resolve()}")
 
     if url and alert.should_alert(result, previous):
         try:
@@ -49,6 +61,14 @@ def check(source: str, out: str = ".", config: str | None = None, query: str | N
     return 1 if result["red"] else 0
 
 
+def open_command(path: Path, platform: str = sys.platform) -> str:
+    """The command that opens a file on this operating system, with the path relative to here."""
+    rel = os.path.relpath(path)
+    if platform.startswith("win"):
+        return f'start "" "{rel}"' if " " in rel else f"start {rel}"
+    return f"{'open' if platform == 'darwin' else 'xdg-open'} {shlex.quote(rel)}"
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog=NAME, description="Check whether your human approval step still does anything.")
     p.add_argument("--version", action="version", version=f"{NAME} {VERSION}")
@@ -56,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
 
     d = sub.add_parser("demo", help="run the check on a built-in example dataset")
     d.add_argument("--out", default=".", help="folder for demo.db, report.html and result.json (default: .)")
+    d.add_argument("--no-open", action="store_true", help="don't open the report in a browser (for CI and servers)")
 
     c = sub.add_parser("check", help="check your own review data")
     c.add_argument("--source", required=True, help="CSV/TSV, .jsonl, SQLite .db, or postgresql://... URL")
@@ -80,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         write_rows(demo.generate(), db)
         print(f"Demo: 8 weeks of synthetic data. An AI support agent recommends refunds and five fictional "
               f"reviewers approve or reject them. Written to {db}\n")
-        return check(str(db), str(out), auto_config=False)
+        return check(str(db), str(out), auto_config=False, open_browser=not args.no_open)
     if args.cmd == "check":
         return check(args.source, args.out, args.config, args.query, args.alert, args.per_reviewer, args.pseudonymize)
     target = Path(args.path)

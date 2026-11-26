@@ -97,8 +97,7 @@ def terminal(result: dict, report_dir: Path, color: bool | None = None) -> str:
         lines += [f"Timing from {SOURCES.get(src, 'no timestamps')}: {', '.join(names)}" for src, names in by_src.items()]
         lines += [""]
     lines += textwrap.wrap("Thresholds: " + " ".join(thresholds_text(result["thresholds"])), width,
-                           break_on_hyphens=False) + [""]
-    lines.append(f"Report: {report_dir / 'report.html'}   Result: {report_dir / 'result.json'}")
+                           break_on_hyphens=False)
     return "\n".join(lines)
 
 

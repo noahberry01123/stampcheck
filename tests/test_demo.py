@@ -12,7 +12,7 @@ STEPS = {"refund_under_50": "RED", "refund_50_to_500": "RED", "refund_over_500":
 @pytest.fixture(scope="module")
 def demo(tmp_path_factory):
     out = tmp_path_factory.mktemp("demo")
-    code = main(["demo", "--out", str(out)])
+    code = main(["demo", "--out", str(out), "--no-open"])
     return code, out, json.loads((out / "result.json").read_text())
 
 
@@ -55,7 +55,7 @@ def test_each_planted_problem_is_caught_by_the_right_check(demo):
 
 
 def test_terminal_summary(demo, capsys):
-    main(["demo", "--out", str(demo[1])])
+    main(["demo", "--out", str(demo[1]), "--no-open"])
     out = " ".join(capsys.readouterr().out.split())  # undo line wrapping
     assert "agreed with the system on 218 of 219 decided cases, median 4 s" in out
     assert "Approval steps" in out and "Thresholds:" in out

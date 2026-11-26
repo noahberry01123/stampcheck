@@ -11,7 +11,7 @@ stampcheck demo
 
 ![The report from stampcheck demo](https://raw.githubusercontent.com/noahberry01123/stampcheck/main/docs/screenshot.png)
 
-`stampcheck demo` builds 8 weeks of synthetic refund approvals, checks them, prints a summary, and writes `report.html`. It takes a few seconds and needs no setup.
+`stampcheck demo` builds 8 weeks of synthetic refund approvals, checks them, prints a summary, and opens `report.html` in your browser (add `--no-open` to skip that on a server or in CI). It takes a few seconds and needs no setup.
 
 Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact.
 
@@ -225,7 +225,7 @@ Every threshold lives in the config file (`stampcheck init` writes them all with
 
 ## Output, exit codes, CI
 
-`stampcheck check` prints a summary and writes two files to `--out` (default: the current folder):
+`stampcheck check` prints a summary, then where the report is saved and the command to open it on your system. It never opens a browser by itself, because it usually runs in cron or CI. It writes two files to `--out` (default: the current folder):
 
 - `report.html`: self-contained (no network). Verdict per approval step, a scatter of time per case against disagreement with the danger zone shaded, weekly trends, how verdicts are decided, and a data-quality section (rows read, rows skipped and why, missing columns, checks that could not run).
 - `result.json`: the same results for scripts.
