@@ -7,7 +7,7 @@ from pathlib import Path
 
 NAME = "stampcheck"  # the command and package name (also rename the package folder and pyproject.toml)
 BRAND = "StampCheck"  # the product name wherever it appears in prose
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 CONFIG_FILE = f"{NAME}.yaml"
 DB_FILE = f"{NAME}.db"
 ENV_PATH = f"{NAME.upper()}_PATH"

@@ -2,7 +2,7 @@
 
 **Find out whether the human approval step in your system still checks anything, or has quietly become a rubber stamp.**
 
-Website: [stampcheck.io](https://stampcheck.io) · New here? [Get started in 5 minutes](https://stampcheck.io/start/)
+Website: [stampcheck.io](https://stampcheck.io) · New here? [Get started in 5 minutes](https://stampcheck.io/start/) · [Try the 20-minute hands-on tutorial](https://stampcheck.io/tutorial/)
 
 ```bash
 pip install stampcheck
@@ -262,4 +262,4 @@ Python 3.10 or newer. No runtime dependencies. MIT licence.
 
 These checks relate to GDPR Art. 22, which covers decisions based solely on automated processing (official guidance says human involvement only counts if it is meaningful, not a token rubber stamp), and to EU AI Act Art. 14, which requires effective human oversight of high-risk AI systems from December 2027. The tool gives you evidence about your review step. It isn't legal advice.
 
-Using this at work and need something for your DPO, auditor or a customer audit? Tell us what you need in [GitHub Discussions](https://github.com/noahberry01123/stampcheck/discussions).
+Using this at work and need something for your DPO, auditor or a customer audit? Tell us what you need in [this GitHub Discussion](https://github.com/noahberry01123/stampcheck/discussions/1).

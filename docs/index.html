@@ -10,7 +10,7 @@
 :root {
   color-scheme: light;
   --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #6b6a66;
-  --border: #e1e0d9; --code: #f0efec; --accent: #d03b3b; --link: #1c5cab;
+  --border: #e1e0d9; --code: #f0efec; --accent: #d03b3b; --link: #1c5cab; --go: #0b7a0b; --go-hover: #096509;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -60,9 +60,9 @@ ul.links { padding-left: 20px; margin: 0; }
 ul.links li { margin: 6px 0; }
 .cta {
   display: inline-block; margin-top: 8px; font: 700 16px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: var(--page); background: var(--ink); text-decoration: none; border-radius: 10px; padding: 13px 18px;
+  color: #fff; background: var(--go); text-decoration: none; border-radius: 10px; padding: 13px 18px;
 }
-.cta:hover { opacity: .88; }
+.cta:hover { background: var(--go-hover); }
 .cta:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; color: var(--muted); }
 footer p { color: var(--muted); }
@@ -78,7 +78,7 @@ footer p { color: var(--muted); }
   <p class="lead">Many systems send automated decisions, like refunds, account locks, or content takedowns, to a person for approval.
     Over time, reviewers learn that the software is usually right and start approving almost everything in seconds, while the log still says "human reviewed".
     StampCheck reads the approval logs you already have and tells you, in plain language, when a review step has stopped filtering anything.</p>
-  <p><a class="cta" href="start/">Get started in 5 minutes</a></p>
+  <p><a class="cta" href="/start/">Get started in 5 minutes &rarr;</a></p>
 
   <h2>Try it</h2>
   <pre><span class="p">$ </span>pip install stampcheck
@@ -98,6 +98,7 @@ footer p { color: var(--muted); }
     <li><b>Timeouts that end in approval</b><span>Cases nobody reviewed before the deadline that went through anyway, because the timeout default fails open.</span></li>
   </ol>
   <p style="margin-top:14px">It also flags approvals executed more than once, logging that looks hard-coded, and queues too big to review properly.</p>
+  <p><a href="/tutorial/"><b>See it for yourself: be the reviewer and let StampCheck judge you &rarr;</b></a></p>
 
   <h2>Links</h2>
   <ul class="links">
@@ -106,6 +107,8 @@ footer p { color: var(--muted); }
     <li>Article on Medium: coming soon</li>
     <li><a href="https://github.com/noahberry01123/stampcheck/discussions">Questions, ideas, and what you found: GitHub Discussions</a></li>
   </ul>
+
+  <p style="margin-top:28px"><a href="https://github.com/noahberry01123/stampcheck/discussions/1"><b>Using this at work and need something for your DPO, auditor or a customer audit? Tell us what you need &rarr;</b></a></p>
 
   <footer>
     <p>Patterns in review data are evidence to look into, not proof that anyone did anything wrong.</p>

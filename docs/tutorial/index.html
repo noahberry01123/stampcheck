@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StampCheck Tutorial</title>
+<meta name="description" content="A 20-minute hands-on tour: run the demo, change the data, then review fake refunds yourself and let StampCheck judge you.">
+<script>
+try { if (localStorage.getItem("stampcheck-theme") === "dark") document.documentElement.setAttribute("data-theme", "dark"); } catch (e) {}
+try {
+  var os = localStorage.getItem("stampcheck-os") || (/Windows/.test(navigator.userAgent) ? "win" : "unix");
+  document.documentElement.setAttribute("data-os", os);
+} catch (e) { document.documentElement.setAttribute("data-os", "unix"); }
+</script>
+<style>
+/* Layout: one reading column. Each section is a card: commands, one result line, an optional "Why?". */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #6b6a66;
+  --border: #e1e0d9; --code: #f0efec; --link: #1c5cab; --mark: #c98500;
+  --red: #d03b3b; --amber: #fab219; --green: #0ca30c; --grey: #898781;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+  --border: #2c2c2a; --code: #232321; --link: #6da7ec; --mark: #fab219;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 17px/1.6 var(--sans); }
+.wrap { max-width: 780px; margin: 0 auto; padding: 32px 16px 56px; }
+a { color: var(--link); }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brand { font: 800 18px/1 var(--sans); color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+.theme, .os button {
+  font: 600 14px/1 var(--sans); color: var(--ink); cursor: pointer; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px;
+}
+.theme:focus-visible, .os button:focus-visible, .copy:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--link); outline-offset: 2px;
+}
+.back { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 20px; font-size: 14px; }
+.back a { color: var(--ink2); }
+h1 { font-size: clamp(32px, 6vw, 46px); line-height: 1.08; letter-spacing: -0.02em; margin: 18px 0 12px; text-wrap: balance; }
+.lead { font-size: 18px; color: var(--ink); margin: 0 0 10px; }
+p { margin: 0 0 12px; color: var(--ink2); }
+.os { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 4px; font-size: 14px; color: var(--muted); }
+.os button[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.os .note { flex-basis: 100%; font-size: 13px; }
+:root[data-os="unix"] .win, :root[data-os="win"] .unix { display: none; }
+section.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 22px 14px;
+  margin-top: 18px;
+}
+section.card > h2 { font-size: 24px; line-height: 1.2; margin: 0 0 10px; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-weight: 800; color: var(--muted); font-size: 20px; min-width: 1.4em; }
+h3 { font-size: 19px; margin: 22px 0 8px; }
+.result { color: var(--ink); font-weight: 600; }
+.cmd { position: relative; margin: 0 0 12px; }
+pre {
+  margin: 0; background: var(--code); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 64px 12px 14px; overflow-x: auto; font: 14px/1.6 var(--mono); color: var(--ink);
+}
+pre .c { color: var(--muted); }
+code { font-family: var(--mono); font-size: 0.92em; }
+.copy {
+  position: absolute; top: 7px; right: 7px; font: 600 12px/1 var(--sans); color: var(--ink2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; cursor: pointer;
+}
+figure { margin: 4px 0 14px; }
+figure img { display: block; width: 100%; max-width: 640px; height: auto; border-radius: 10px; border: 1px solid var(--border); }
+figcaption { font-size: 15px; color: var(--ink); margin-top: 8px; }
+details { border-top: 1px solid var(--border); margin: 6px 0 0; padding: 8px 0 2px; }
+summary {
+  cursor: pointer; font-weight: 700; font-size: 15px; color: var(--link); list-style: none; display: inline-flex;
+  align-items: center; gap: 8px; padding: 4px 0;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s ease;
+}
+details[open] summary::before { transform: rotate(45deg); }
+details > *:not(summary) { margin-top: 8px; }
+details p, details li { font-size: 16px; }
+ul { margin: 0 0 12px; padding-left: 20px; color: var(--ink2); }
+li { margin: 4px 0; }
+.scroll { overflow-x: auto; margin: 0 0 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+td:first-child { white-space: nowrap; font-weight: 700; color: var(--ink); }
+td { color: var(--ink2); }
+.pill { display: inline-block; min-width: 70px; text-align: center; padding: 2px 8px; border-radius: 999px; font: 700 12px/1.5 var(--sans); color: #fff; }
+.pill.red { background: var(--red); } .pill.amber { background: var(--amber); color: #0b0b0b; }
+.pill.green { background: var(--green); } .pill.grey { background: var(--grey); }
+footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px;
+  display: flex; flex-wrap: wrap; gap: 8px 20px; }
+@media (max-width: 600px) { section.card { padding: 18px 14px 10px; } pre { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { summary::before { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="/">StampCheck</a>
+    <button class="theme" id="theme" type="button" aria-pressed="false">Dark mode</button>
+  </div>
+  <nav class="back" aria-label="Back">
+    <a href="/start/">&larr; Quick start</a>
+    <a href="/">&larr; What is StampCheck?</a>
+  </nav>
+
+  <h1>Try StampCheck yourself</h1>
+  <p class="lead">A hands-on tour. It takes about 20 minutes, and every command was tested on StampCheck 0.1.2 from PyPI. You'll run the demo, read the report, change the data to see what StampCheck does with less information, and then review fake refunds yourself and let StampCheck judge you.</p>
+  <p>Everything happens in a throwaway folder, so nothing touches your own projects.</p>
+
+  <div class="os" role="group" aria-label="Show commands for">
+    Commands for:
+    <button type="button" data-os="unix">macOS / Linux</button>
+    <button type="button" data-os="win">Windows</button>
+    <span class="note">Tested on macOS. The Windows commands are the standard PowerShell equivalents.</span>
+  </div>
+
+  <!-- 1 -->
+  <section class="card">
+    <h2><span class="n">1</span>Set up a playground (once)</h2>
+    <p>Open a terminal and paste:</p>
+    <div class="cmd unix"><pre>mkdir ~/stampcheck-playground
+cd ~/stampcheck-playground
+python3 -m venv .venv
+source .venv/bin/activate
+pip install stampcheck
+curl -O https://raw.githubusercontent.com/noahberry01123/stampcheck/main/examples/play_reviewer.py</pre></div>
+    <div class="cmd win"><pre>mkdir ~\stampcheck-playground
+cd ~\stampcheck-playground
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install stampcheck
+curl.exe -O https://raw.githubusercontent.com/noahberry01123/stampcheck/main/examples/play_reviewer.py</pre></div>
+    <p class="result">Check that it worked: <code>stampcheck --version</code> should print <code>stampcheck 0.1.2</code>.</p>
+    <p>If you open a new terminal window later, start with:</p>
+    <div class="cmd unix"><pre>cd ~/stampcheck-playground &amp;&amp; source .venv/bin/activate</pre></div>
+    <div class="cmd win"><pre>cd ~\stampcheck-playground; .venv\Scripts\Activate.ps1</pre></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="card">
+    <h2><span class="n">2</span>Run the demo</h2>
+    <div class="cmd"><pre>stampcheck demo</pre></div>
+    <p>Then open <code>report.html</code> in your browser:</p>
+    <div class="cmd unix"><pre>open report.html          <span class="c"># Linux: xdg-open report.html</span></pre></div>
+    <div class="cmd win"><pre>start report.html</pre></div>
+    <figure>
+      <img src="demo-report.png" width="1000" height="903" alt="The demo report. Approval steps: refund_50_to_500 RED (drift and 25 timeout approvals), refund_under_50 RED (one rubber-stamper and a refund paid 3 times), refund_over_500 GREEN. Reviewers: sam RED, taylor RED, jordan AMBER, alex GREEN, kim GREY.">
+      <figcaption>sam is RED: agreed with the AI on 218 of 219 cases, in a median of 4 seconds.</figcaption>
+    </figure>
+    <details>
+      <summary>Why?</summary>
+      <p>The demo builds 8 weeks of made-up data: an AI support agent recommends refunds, and five fictional reviewers approve or reject them. Problems are planted on purpose so you can see each check fire.</p>
+      <div class="scroll"><table>
+        <tr><th>Reviewer</th><th>Verdict</th><th>What is going on</th></tr>
+        <tr><td>sam</td><td><span class="pill red">RED</span></td><td>Agreed with the AI on 218 of 219 cases, in a median of 4 seconds. The classic rubber stamp.</td></tr>
+        <tr><td>taylor</td><td><span class="pill red">RED</span></td><td>Careful for 5 weeks, then sped up to 6 s per case. Over all 8 weeks the numbers look fine; only the drift check catches it.</td></tr>
+        <tr><td>jordan</td><td><span class="pill amber">AMBER</span></td><td>Fast (12 s) but disagrees with the AI 13% of the time, so still really checking. One warning sign, not two.</td></tr>
+        <tr><td>alex</td><td><span class="pill green">GREEN</span></td><td>Takes about 2.5 minutes and disagrees 10% of the time. What you want.</td></tr>
+        <tr><td>kim</td><td><span class="pill grey">GREY</span></td><td>Only 12 cases. Not enough data to judge, which is never the same as a pass.</td></tr>
+      </table></div>
+      <p>The <b>Approval steps</b> at the top are the team-level results for refunds under €50, €50 to €500, and over €500. They also show two non-person problems: 25 cases approved overnight after nobody reviewed them (a timeout default that "fails open"), and one refund paid out 3 times (a retry bug).</p>
+    </details>
+
+    <h3>Scroll down: the danger zone</h3>
+    <figure>
+      <img src="scatter.png" width="1000" height="651" alt="Scatter plot of median time per case against disagreement. sam and kim sit in the shaded rubber-stamp zone in the lower left; taylor, jordan and alex are outside it.">
+      <figcaption>sam sits in the shaded corner: fast and almost never disagreeing.</figcaption>
+    </figure>
+
+    <h3>Further down: the weekly trend</h3>
+    <figure>
+      <img src="weekly-trend.png" width="1000" height="711" alt="Weekly median time per case and weekly disagreement for each reviewer. taylor's time per case drops to 6 seconds in the last two weeks.">
+      <figcaption>taylor's line drops off a cliff in the last two weeks. That's drift.</figcaption>
+    </figure>
+    <p>The last section, <b>How these verdicts are decided</b>, explains every rule and threshold in plain words.</p>
+
+    <h3>Exit codes</h3>
+    <div class="cmd unix"><pre>stampcheck check --source demo.db --out results; echo $?</pre></div>
+    <div class="cmd win"><pre>stampcheck check --source demo.db --out results; echo $LASTEXITCODE</pre></div>
+    <p class="result">Prints 1, meaning "something is RED". That's what makes it usable in CI or cron.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="card">
+    <h2><span class="n">3</span>Look at the raw data</h2>
+    <p>StampCheck only needs a simple table with one row per reviewed case. Export the demo data:</p>
+    <div class="cmd"><pre>sqlite3 -header -csv demo.db ".output demo.csv" "SELECT * FROM reviews"</pre></div>
+    <p class="win">On Windows, get the sqlite3 command-line tools from <a href="https://sqlite.org/download.html">sqlite.org/download.html</a> first.</p>
+    <p>Open <code>demo.csv</code> in a spreadsheet app.</p>
+    <p class="result">Find one of sam's rows: opened at 08:23:33, decided at 08:23:36. That's 3 seconds for a refund decision.</p>
+    <details>
+      <summary>What the columns mean</summary>
+      <ul>
+        <li><code>recommended</code>: what the AI suggested.</li>
+        <li><code>decision</code>: what the human did.</li>
+        <li><code>reviewer</code>: who decided.</li>
+        <li><code>opened_at</code>: when they opened the case.</li>
+        <li><code>decided_at</code>: when they decided.</li>
+        <li><code>notified_at</code>: when the case entered their queue.</li>
+        <li><code>category</code>: the approval step.</li>
+        <li><code>executed</code>: how many times the refund was actually paid.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- 4 -->
+  <section class="card">
+    <h2><span class="n">4</span>Experiments</h2>
+    <p>Give each experiment its own <code>--out</code> folder, so the reports don't overwrite each other. To view a report, open the folder's <code>report.html</code> in your browser.</p>
+
+    <h3>A. What if you never logged when cases were opened?</h3>
+    <p>Most real systems don't log <code>opened_at</code>. Remove it and see what happens:</p>
+    <div class="cmd"><pre>sqlite3 -header -csv demo.db ".output no_opened.csv" "SELECT case_id, recommended, decision, reviewer, decided_at, notified_at, category, executed FROM reviews"
+stampcheck check --source no_opened.csv --out results-no-opened</pre></div>
+    <p class="result">sam drops from RED to AMBER: "Speed can't be confirmed (median at most 7 min 54 s per case, from gaps between consecutive decisions...)".</p>
+    <details>
+      <summary>Why?</summary>
+      <p>Without <code>opened_at</code>, StampCheck estimates time per case from the gap since the reviewer's previous decision. That gap can only be <i>longer</i> than the real reading time, because the reviewer might have been on a break. So a short gap proves someone is fast, but a long gap proves nothing. sam still gets AMBER, not GREEN, because agreeing on 218 of 219 cases is a warning sign on its own.</p>
+      <p>The timing source is named. The last line says "Timing from gaps between consecutive decisions (an upper bound)". With <code>opened_at</code> it says "opened_at (exact, the most precise)".</p>
+      <p>This is why the docs say: "Works with the approval logs you already have. Adding an opened_at timestamp makes the timings exact."</p>
+    </details>
+
+    <h3>B. What if there's no AI recommendation in the data?</h3>
+    <div class="cmd"><pre>sqlite3 -header -csv demo.db ".output no_recommendation.csv" "SELECT case_id, decision, reviewer, opened_at, decided_at, category, executed FROM reviews"
+stampcheck check --source no_recommendation.csv --out results-no-rec</pre></div>
+    <p class="result">Only the speed checks run: sam and jordan both become AMBER ("fast"), and alex is GREEN ("not fast").</p>
+    <details>
+      <summary>Why?</summary>
+      <p>Now StampCheck can't tell whether people agree with the system, so only the speed checks run, and the output says so.</p>
+    </details>
+
+    <h3>C. Change a threshold</h3>
+    <div class="cmd"><pre>stampcheck init</pre></div>
+    <p>This writes <code>stampcheck.yaml</code> with every setting, commented. Open it in any text editor, change <code>max_median_seconds: 30</code> to <code>max_median_seconds: 10</code>, save, then:</p>
+    <div class="cmd"><pre>stampcheck check --source demo.db --out results-strict</pre></div>
+    <p class="result">jordan (12 s per case) is no longer "fast", so jordan goes from AMBER to GREEN. sam (4 s) stays RED.</p>
+    <p>Delete the file afterwards:</p>
+    <div class="cmd"><pre>rm stampcheck.yaml</pre></div>
+    <details>
+      <summary>Why?</summary>
+      <p>Every rule is a setting you can change. The thresholds are judgement calls, and the report always prints the ones it used.</p>
+      <p><code>stampcheck check</code> picks up a <code>stampcheck.yaml</code> from the current folder automatically, so it would also apply to the next experiments. (<code>stampcheck demo</code> always ignores it.)</p>
+    </details>
+
+    <h3>D. Be the reviewer</h3>
+    <p>This is the fun one. <code>play_reviewer.py</code> shows you fake refund requests, each with an AI recommendation. Some of the AI's recommendations are wrong: look out for the "Account notes" line.</p>
+    <p>Round 1, as a careful reviewer (40 cases). Read each case, and reject the ones with a red flag:</p>
+    <div class="cmd"><pre>python play_reviewer.py careful</pre></div>
+    <p>Round 2, as a rubber-stamper (80 cases). Just hold down Enter, which means "go with the AI":</p>
+    <div class="cmd"><pre>python play_reviewer.py fast 80</pre></div>
+    <p>Then let StampCheck judge you:</p>
+    <div class="cmd unix"><pre>stampcheck check --source my_reviews.db --out results-me
+open results-me/report.html          <span class="c"># Linux: xdg-open results-me/report.html</span></pre></div>
+    <div class="cmd win"><pre>stampcheck check --source my_reviews.db --out results-me
+start results-me\report.html</pre></div>
+    <figure>
+      <img src="be-the-reviewer.png" width="1000" height="523" alt="Example result: reviewer fast is RED, agreed with the system on 80 of 80 decided cases, median 0 s; reviewer careful is AMBER, fast with a median of 12 s but still disagrees with the system on 30% of cases.">
+      <figcaption>Example result: fast is RED (80 of 80 agreed, median 0 s). careful is AMBER (fast, but disagreed on 30%).</figcaption>
+    </figure>
+    <details>
+      <summary>Why?</summary>
+      <p>Every answer is logged with StampCheck's <code>review()</code> helper, which records the moment each case appeared and the moment you answered.</p>
+      <p>Your careful round will probably come out AMBER: "fast (median 12 s ...), but still disagrees with the system on 30% of cases". These fake cases are short, so you read them in well under 30 seconds. Speed alone isn't the problem: you caught the bad recommendations, so StampCheck doesn't call it rubber-stamping. Take more than 30 seconds per case and you'd be GREEN.</p>
+    </details>
+
+    <p style="margin-top:14px"><b>Why 80 cases?</b> Try a shorter fast round:</p>
+    <div class="cmd"><pre>python play_reviewer.py fast2 40</pre></div>
+    <p class="result">fast2 gets AMBER, not RED: "It agreed with the system on 40 of 40 decided cases, but that is too few cases to rule out a disagreement rate up to 8.8%."</p>
+    <details>
+      <summary>Why?</summary>
+      <p>With fewer cases, even perfect agreement can't be <i>proven</i>. The rule needs the 95% upper bound on the disagreement rate to be under 5%, and with 0 disagreements that takes about 75 cases.</p>
+    </details>
+    <p style="margin-top:12px">To start over, run <code>rm my_reviews.db</code>.</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="card">
+    <h2><span class="n">5</span>Cheat sheet</h2>
+    <div class="scroll"><table>
+      <tr><th>Term</th><th>Meaning</th></tr>
+      <tr><td><span class="pill red">RED</span></td><td>Both warning signs, or a serious problem (timeouts that approved, duplicate payouts, drift into the danger zone).</td></tr>
+      <tr><td><span class="pill amber">AMBER</span></td><td>One warning sign.</td></tr>
+      <tr><td><span class="pill green">GREEN</span></td><td>Looks engaged.</td></tr>
+      <tr><td><span class="pill grey">GREY</span></td><td>Not enough data. That's never a pass.</td></tr>
+      <tr><td>Disagreement</td><td>How often the human did something other than what the AI recommended (escalating counts).</td></tr>
+      <tr><td>Upper bound</td><td>How high the real disagreement rate could plausibly be, given how few cases there are. Small samples get the benefit of the doubt.</td></tr>
+      <tr><td>Median time per case</td><td>Half the decisions were faster than this.</td></tr>
+      <tr><td>Drift</td><td>The last 2 weeks compared with the 4 weeks before.</td></tr>
+      <tr><td>Timing source</td><td><code>opened_at</code> is exact. The other two sources are upper bounds, which can prove someone was fast but never prove they were careful.</td></tr>
+      <tr><td>Data sources</td><td>Works with CSV, TSV, JSON lines, SQLite and Postgres.</td></tr>
+      <tr><td>Report footer</td><td>Patterns are evidence to look into, not proof that anyone did anything wrong.</td></tr>
+    </table></div>
+  </section>
+
+  <!-- 6 -->
+  <section class="card">
+    <h2><span class="n">6</span>Clean up</h2>
+    <div class="cmd unix"><pre>deactivate
+rm -rf ~/stampcheck-playground</pre></div>
+    <div class="cmd win"><pre>deactivate
+Remove-Item -Recurse -Force ~\stampcheck-playground</pre></div>
+  </section>
+
+  <footer>
+    <a href="https://github.com/noahberry01123/stampcheck">GitHub repo</a>
+    <a href="https://github.com/noahberry01123/stampcheck/discussions">Questions and ideas: GitHub Discussions</a>
+    <a href="https://github.com/noahberry01123/stampcheck#readme">Full README with all the details</a>
+  </footer>
+</div>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById("theme");
+  function apply(theme) {
+    var dark = theme === "dark";
+    root.setAttribute("data-theme", dark ? "dark" : "light");
+    btn.textContent = dark ? "Light mode" : "Dark mode";
+    btn.setAttribute("aria-pressed", dark ? "true" : "false");
+  }
+  apply(root.getAttribute("data-theme"));
+  btn.addEventListener("click", function () {
+    var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    apply(next);
+    try { localStorage.setItem("stampcheck-theme", next); } catch (e) {}
+  });
+
+  var osButtons = document.querySelectorAll(".os button");
+  function showOs(os) {
+    root.setAttribute("data-os", os);
+    osButtons.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.os === os ? "true" : "false"); });
+  }
+  showOs(root.getAttribute("data-os") || "unix");
+  osButtons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      showOs(b.dataset.os);
+      try { localStorage.setItem("stampcheck-os", b.dataset.os); } catch (e) {}
+    });
+  });
+
+  // Copy buttons: copy the command text without the "# Linux: ..." hints.
+  document.querySelectorAll(".cmd").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.textContent = "Copy";
+    b.addEventListener("click", function () {
+      var text = pre.innerText.replace(/\s+# Linux:.*$/gm, "");
+      navigator.clipboard.writeText(text).then(function () { b.textContent = "Copied"; },
+        function () { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+      setTimeout(function () { b.textContent = "Copy"; }, 1500);
+    });
+    box.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>
