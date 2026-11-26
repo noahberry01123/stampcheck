@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StampCheck Quick Start</title>
+<meta name="description" content="Six steps from pip install to a check on your own approval data.">
+<script>try { if (localStorage.getItem("stampcheck-theme") === "dark") document.documentElement.setAttribute("data-theme", "dark"); } catch (e) {}</script>
+<style>
+/* Layout: one step per row, big step number and short text on the left, a line drawing on the right. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #6b6a66;
+  --border: #e1e0d9; --code: #f0efec; --link: #1c5cab; --line: #2b2a27; --mark: #c98500;
+  --red: #d03b3b; --amber: #fab219; --green: #0ca30c; --grey: #898781;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+  --border: #2c2c2a; --code: #232321; --link: #6da7ec; --line: #e4e2da; --mark: #fab219;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 17px/1.5 var(--sans); }
+.wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px 56px; }
+a { color: var(--link); }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brand { font: 800 18px/1 var(--sans); color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+.theme {
+  font: 600 14px/1 var(--sans); color: var(--ink); cursor: pointer; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px;
+}
+.theme:focus-visible, .copy:focus-visible, .pdf:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+header.intro { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin: 28px 0 8px; }
+h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.05; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.pdf {
+  font: 600 15px/1 var(--sans); color: var(--ink); text-decoration: none; border: 1.5px solid var(--line);
+  border-radius: 10px; padding: 11px 16px; white-space: nowrap;
+}
+.pdf:hover { background: var(--code); }
+ol.steps { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 18px; }
+.step {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px;
+  break-inside: avoid;
+}
+.num { font: 800 64px/0.9 var(--sans); letter-spacing: -0.04em; color: var(--ink); }
+.step h2 { font-size: 24px; line-height: 1.2; margin: 10px 0 6px; }
+.step h2 small { font-size: 15px; font-weight: 600; color: var(--muted); }
+.step p { margin: 0 0 12px; color: var(--ink2); }
+.cmd { position: relative; }
+pre {
+  margin: 0 0 10px; background: var(--code); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; overflow-x: auto; font: 14px/1.55 var(--mono); color: var(--ink);
+}
+pre .p { color: var(--muted); user-select: none; }
+pre .c { color: var(--muted); }
+.cmd pre { padding-right: 64px; }
+.copy {
+  position: absolute; top: 7px; right: 7px; font: 600 12px/1 var(--sans); color: var(--ink2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; cursor: pointer;
+}
+.art { color: var(--line); min-width: 0; display: flex; justify-content: center; }
+.art svg { width: 100%; max-width: 360px; height: auto; display: block; overflow: visible; }
+.art svg text { font-family: var(--mono); fill: currentColor; }
+.art img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; }
+.verdicts { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.verdicts li { display: flex; align-items: center; gap: 12px; color: var(--ink2); }
+.pill {
+  display: inline-flex; justify-content: center; gap: 6px; min-width: 92px; padding: 5px 10px; border-radius: 999px;
+  font: 700 13px/1.2 var(--sans); color: #fff;
+}
+.pill.red { background: var(--red); } .pill.amber { background: var(--amber); color: #0b0b0b; }
+.pill.green { background: var(--green); } .pill.grey { background: var(--grey); }
+.more { font-size: 14px; }
+footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px;
+  display: flex; flex-wrap: wrap; gap: 8px 20px; }
+@media (max-width: 720px) {
+  .step { grid-template-columns: 1fr; padding: 20px 16px; gap: 16px; }
+  .num { font-size: 52px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Print: the same steps as a 2-page A4 handout, always light. */
+@page { size: A4; margin: 12mm; }
+@media print {
+  :root, :root[data-theme="dark"] {
+    color-scheme: light; --page: #fff; --surface: #fff; --ink: #0b0b0b; --ink2: #3d3c39; --muted: #6b6a66;
+    --border: #d8d6cd; --code: #f3f2ee; --link: #1c5cab; --line: #2b2a27; --mark: #c98500;
+  }
+  body { font-size: 12.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wrap { padding: 0; max-width: none; }
+  .theme, .copy, .pdf { display: none; }
+  header.intro { margin: 10px 0 4px; }
+  h1 { font-size: 26px; }
+  ol.steps { gap: 4mm; margin-top: 4mm; }
+  .step { padding: 4.5mm 5mm; gap: 5mm; border-radius: 10px; min-height: 74mm; }
+  .step:nth-child(3) { break-after: page; }
+  .num { font-size: 40px; }
+  .step h2 { font-size: 17px; margin: 4px 0 3px; }
+  .step p { margin-bottom: 6px; }
+  .step { grid-template-columns: 1.35fr 1fr; }
+  pre { font-size: 9.5px; padding: 7px 9px; margin-bottom: 6px; white-space: pre; overflow: visible; }
+  .cmd pre { padding-right: 9px; }
+  .art svg { max-width: 260px; }
+  .art img { max-width: 300px; }
+  footer { margin-top: 5mm; font-size: 10.5px; }
+  footer a { color: var(--ink2); text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="../">StampCheck</a>
+    <button class="theme" id="theme" type="button" aria-pressed="false">Dark mode</button>
+  </div>
+
+  <header class="intro">
+    <h1>Get started in 5 minutes</h1>
+    <a class="pdf" href="stampcheck-quickstart.pdf" download>Download PDF</a>
+  </header>
+
+  <ol class="steps">
+    <!-- 1 -->
+    <li class="step">
+      <div>
+        <div class="num">1</div>
+        <h2>Install</h2>
+        <p>Needs Python 3.10 or newer.</p>
+        <div class="cmd"><pre><span class="p">$ </span>pip install stampcheck</pre></div>
+      </div>
+      <div class="art">
+        <svg viewBox="0 0 300 180" role="img" aria-label="A terminal window and a package arriving in a box" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="20" width="170" height="120" rx="12"/>
+          <path d="M10 46 H180"/>
+          <circle cx="28" cy="33" r="3"/><circle cx="42" cy="33" r="3"/><circle cx="56" cy="33" r="3"/>
+          <path d="M30 74 l14 12 l-14 12"/>
+          <path d="M54 98 H96"/>
+          <path d="M238 28 V78" stroke="var(--mark)"/><path d="M224 64 l14 14 l14 -14" stroke="var(--mark)"/>
+          <path d="M206 100 l32 -12 l32 12 v44 l-32 14 l-32 -14 z"/>
+          <path d="M206 100 l32 14 l32 -14"/><path d="M238 114 V158"/>
+        </svg>
+      </div>
+    </li>
+
+    <!-- 2 -->
+    <li class="step">
+      <div>
+        <div class="num">2</div>
+        <h2>See it work</h2>
+        <p>Eight weeks of made-up refund approvals. sam is the rubber stamp.</p>
+        <div class="cmd"><pre><span class="p">$ </span>stampcheck demo</pre></div>
+        <p class="more">Then open <code>report.html</code>.</p>
+      </div>
+      <div class="art">
+        <img src="demo-report.png" alt="The demo report: reviewer sam is RED, agreed with the system on 218 of 219 decided cases, median 4 seconds" width="900" height="128">
+      </div>
+    </li>
+
+    <!-- 3 -->
+    <li class="step">
+      <div>
+        <div class="num">3</div>
+        <h2>Point it at your data</h2>
+        <p>One row per case: an ID, who, what, when, and what the system recommended.</p>
+        <div class="cmd"><pre><span class="p">$ </span>stampcheck check --source your_approvals.csv</pre></div>
+      </div>
+      <div class="art">
+        <svg viewBox="0 0 424 170" role="img" aria-label="A table with the five columns case_id, reviewer, decision, decided_at and recommended" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="max-width:440px">
+          <rect x="4" y="12" width="412" height="140" rx="10"/>
+          <path d="M4 46 H416"/>
+          <path d="M74 12 V152 M152 12 V152 M230 12 V152 M320 12 V152"/>
+          <g stroke="none" font-size="11" font-weight="700"><text x="12" y="34">case_id</text><text x="82" y="34">reviewer</text><text x="160" y="34">decision</text><text x="238" y="34">decided_at</text><text x="328" y="34">recommended</text></g>
+          <g stroke="none" font-size="11">
+            <text x="12" y="72">R-1</text><text x="82" y="72">sam</text><text x="160" y="72">approve</text><text x="238" y="72">09:00:04</text><text x="328" y="72">approve</text>
+            <text x="12" y="104">R-2</text><text x="82" y="104">alex</text><text x="160" y="104">reject</text><text x="238" y="104">09:02:31</text><text x="328" y="104">approve</text>
+            <text x="12" y="136">R-3</text><text x="82" y="136">sam</text><text x="160" y="136">approve</text><text x="238" y="136">09:02:35</text><text x="328" y="136">approve</text>
+          </g>
+          <path d="M4 82 H416 M4 114 H416" stroke-width="1.2" opacity="0.45"/>
+        </svg>
+      </div>
+    </li>
+
+    <!-- 4 -->
+    <li class="step">
+      <div>
+        <div class="num">4</div>
+        <h2>Read the result</h2>
+        <p>Every reviewer and approval step gets one colour.</p>
+      </div>
+      <div>
+        <ul class="verdicts">
+          <li><span class="pill red"><span aria-hidden="true">&#x2716;</span>RED</span>Rubber-stamp pattern or a real problem.</li>
+          <li><span class="pill amber"><span aria-hidden="true">&#x25B2;</span>AMBER</span>One warning sign.</li>
+          <li><span class="pill green"><span aria-hidden="true">&#x2714;</span>GREEN</span>Reviews look real.</li>
+          <li><span class="pill grey"><span aria-hidden="true">&#x25CB;</span>GREY</span>Not enough data. Never a pass.</li>
+        </ul>
+      </div>
+    </li>
+
+    <!-- 5 -->
+    <li class="step">
+      <div>
+        <div class="num">5</div>
+        <h2>Make it exact <small>(optional)</small></h2>
+        <p>Log when a reviewer opened the case. Timings become exact.</p>
+        <div class="cmd"><pre>stampcheck.record_review(
+    case_id, recommended, decision, reviewer,
+    opened_at=opened_at, decided_at=decided_at)</pre></div>
+      </div>
+      <div class="art">
+        <svg viewBox="0 0 320 170" role="img" aria-label="A timeline from opened at 09:00:00 to decided at 09:00:04, four seconds apart" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="18" y="22" width="56" height="70" rx="6"/>
+          <path d="M30 42 H62 M30 56 H62 M30 70 H50"/>
+          <circle cx="262" cy="56" r="34"/><path d="M262 34 V56 L278 66"/>
+          <path d="M20 128 H300"/>
+          <path d="M46 116 V140" stroke="var(--mark)"/><path d="M262 116 V140" stroke="var(--mark)"/>
+          <path d="M56 104 Q154 78 252 104" stroke="var(--mark)" stroke-dasharray="2 9"/>
+          <g stroke="none" font-size="12" font-weight="700">
+            <text x="46" y="160" text-anchor="middle">opened_at</text>
+            <text x="262" y="160" text-anchor="middle">decided_at</text>
+            <text x="154" y="88" text-anchor="middle">4 s</text>
+          </g>
+        </svg>
+      </div>
+    </li>
+
+    <!-- 6 -->
+    <li class="step">
+      <div>
+        <div class="num">6</div>
+        <h2>Keep watching</h2>
+        <p>Run it weekly. Slack only pings when something turns RED or starts drifting.</p>
+        <div class="cmd"><pre><span class="p">$ </span>stampcheck check --source your_approvals.csv \
+    --alert "slack:$SLACK_WEBHOOK_URL"</pre></div>
+        <div class="cmd"><pre>on:
+  schedule:
+    - cron: "0 7 * * 1"   <span class="c"># every Monday, 07:00 UTC</span></pre></div>
+        <p class="more"><a href="https://github.com/noahberry01123/stampcheck/blob/main/examples/github-actions/stampcheck.yml">Full GitHub Actions file</a></p>
+      </div>
+      <div class="art">
+        <svg viewBox="0 0 320 180" role="img" aria-label="A weekly calendar with Monday marked and a chat message with an alert" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="30" width="170" height="130" rx="12"/>
+          <path d="M10 62 H180"/><path d="M48 18 V42 M142 18 V42"/>
+          <path d="M10 98 H180 M10 130 H180 M66 62 V160 M124 62 V160" stroke-width="1.5" opacity="0.45"/>
+          <rect x="17" y="68" width="42" height="24" rx="5" stroke="var(--mark)"/>
+          <text x="38" y="85" text-anchor="middle" font-size="12" font-weight="700" stroke="none">Mon</text>
+          <path d="M206 40 h96 a10 10 0 0 1 10 10 v52 a10 10 0 0 1 -10 10 h-58 l-20 18 v-18 h-18 a10 10 0 0 1 -10 -10 v-52 a10 10 0 0 1 10 -10 z"/>
+          <path d="M254 58 V80" stroke="var(--red)"/><circle cx="254" cy="94" r="1.5" stroke="var(--red)"/>
+        </svg>
+      </div>
+    </li>
+  </ol>
+
+  <footer>
+    <a href="https://github.com/noahberry01123/stampcheck">GitHub repo</a>
+    <a href="https://github.com/noahberry01123/stampcheck/discussions">Questions and ideas: GitHub Discussions</a>
+    <a href="https://github.com/noahberry01123/stampcheck#readme">Full README with all the details</a>
+  </footer>
+</div>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById("theme");
+  function apply(theme) {
+    var dark = theme === "dark";
+    root.setAttribute("data-theme", dark ? "dark" : "light");
+    btn.textContent = dark ? "Light mode" : "Dark mode";
+    btn.setAttribute("aria-pressed", dark ? "true" : "false");
+  }
+  apply(root.getAttribute("data-theme"));
+  btn.addEventListener("click", function () {
+    var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    apply(next);
+    try { localStorage.setItem("stampcheck-theme", next); } catch (e) {}
+  });
+  // Copy buttons on each code block (the "$ " prompt is left out of the copied text).
+  document.querySelectorAll(".cmd").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.textContent = "Copy";
+    b.addEventListener("click", function () {
+      var text = pre.innerText.replace(/^\$ /gm, "");
+      navigator.clipboard.writeText(text).then(function () { b.textContent = "Copied"; },
+        function () { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+      setTimeout(function () { b.textContent = "Copy"; }, 1500);
+    });
+    box.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>

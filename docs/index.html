@@ -58,6 +58,12 @@ ol.prints b { display: block; color: var(--ink); }
 ol.prints span { color: var(--ink2); }
 ul.links { padding-left: 20px; margin: 0; }
 ul.links li { margin: 6px 0; }
+.cta {
+  display: inline-block; margin-top: 8px; font: 700 16px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--page); background: var(--ink); text-decoration: none; border-radius: 10px; padding: 13px 18px;
+}
+.cta:hover { opacity: .88; }
+.cta:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; color: var(--muted); }
 footer p { color: var(--muted); }
 </style>
@@ -72,6 +78,7 @@ footer p { color: var(--muted); }
   <p class="lead">Many systems send automated decisions, like refunds, account locks, or content takedowns, to a person for approval.
     Over time, reviewers learn that the software is usually right and start approving almost everything in seconds, while the log still says "human reviewed".
     StampCheck reads the approval logs you already have and tells you, in plain language, when a review step has stopped filtering anything.</p>
+  <p><a class="cta" href="start/">Get started in 5 minutes</a></p>
 
   <h2>Try it</h2>
   <pre><span class="p">$ </span>pip install stampcheck
