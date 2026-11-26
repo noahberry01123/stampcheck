@@ -92,3 +92,10 @@ def test_csv_without_recommendation_column_loads(tmp_path):
         f"{r['case_id']},{r['decision']},{r['reviewer']},{r['decided_at'].isoformat()}" for r in rows(gap=5)]
     path.write_text("\n".join(lines) + "\n")
     assert main(["check", "--source", str(path), "--out", str(tmp_path)]) == 0  # AMBER at most, never RED
+
+
+def test_few_cases_with_full_agreement_says_too_few_not_disagrees(th):
+    th = {**th, "min_cases": 10}
+    f, _ = rubber(run_all(rows(n=12, gap=5, opened=True), th))  # 12 of 12 agreed, fast
+    assert f["verdict"] == "AMBER" and "too few cases to rule out" in f["message"]
+    assert "disagrees with the system on 0%" not in f["message"]

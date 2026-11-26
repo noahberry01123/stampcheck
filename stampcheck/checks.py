@@ -114,6 +114,10 @@ def rubber_stamp(rows: list[dict], th: dict) -> dict:
         return finding("rubber_stamp", GREY, f"Only {n} decided cases; at least {minc} are needed to judge.", **s)
     agree, fast = signs(s, th)
     agreed, rate, when = f"agreed with the system on {n - k} of {n} decided cases", pct(s["rate"]), timing(s)
+    # agree is False either because they really disagree often, or because there are too few cases to be sure
+    unsure = s["rate"] is not None and s["rate"] < th["max_disagreement_upper"]
+    disagrees = (f"{agreed}, but that is too few cases to rule out a disagreement rate up to {pct(s['upper'])}"
+                 if unsure else f"disagrees with the system on {rate} of cases")
     no_rec = "Agreement can't be checked without the system's recommendation."
     if agree and fast:
         verdict, msg = RED, f"Looks like rubber-stamping: {agreed}, {when}."
@@ -122,9 +126,11 @@ def rubber_stamp(rows: list[dict], th: dict) -> dict:
     elif agree:
         verdict, msg = AMBER, f"One warning sign: {agreed}. Speed can't be confirmed ({when})."
     elif agree is False and fast:
-        verdict, msg = AMBER, f"One warning sign: fast ({when}), but still disagrees with the system on {rate} of cases."
+        verdict, msg = AMBER, (f"One warning sign: fast ({when}). It {disagrees}." if unsure else
+                               f"One warning sign: fast ({when}), but still {disagrees}.")
     elif agree is False:
-        verdict, msg = GREEN, f"Engaged: disagrees with the system on {rate} of cases ({when})."
+        verdict, msg = GREEN, (f"No warning sign confirmed: {disagrees} ({when})." if unsure else
+                               f"Engaged: {disagrees} ({when}).")
     elif fast:
         verdict, msg = AMBER, f"One warning sign: fast ({when}). {no_rec}"
     elif fast is False:
