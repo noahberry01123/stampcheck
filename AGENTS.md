@@ -2,7 +2,7 @@
 
 You are helping a user set up StampCheck in their project. StampCheck reads a log of human approval decisions, where a person approves or rejects what an automated system or AI recommended. For each reviewer and each approval step, it reports whether the review still checks anything or has turned into a rubber stamp. It is a read-only command-line tool for Python 3.10 or newer.
 
-Plain-text copy of these instructions: https://stampcheck.io/agent.txt. Full documentation: https://github.com/noahberry01123/stampcheck#readme
+Plain-text copy of these instructions: <https://stampcheck.io/agent.txt>. Full documentation: <https://github.com/noahberry01123/stampcheck#readme>
 
 If you are working on StampCheck's own source code, this file does not apply to you.
 
@@ -204,7 +204,7 @@ Alerts are team-level by default, for example "1 of 2 reviewers matches the rubb
 
 cron doesn't load the user's shell profile, so define the webhook variable in the crontab or in a wrapper script.
 
-**GitHub Actions**, for a database that GitHub's runners can reach: start from https://github.com/noahberry01123/stampcheck/blob/main/examples/github-actions/stampcheck.yml. It runs weekly and takes a read-only database URL and the Slack webhook from repository secrets. It also caches the previous `result.json`.
+**GitHub Actions**, for a database that GitHub's runners can reach: start from <https://github.com/noahberry01123/stampcheck/blob/main/examples/github-actions/stampcheck.yml>. It runs weekly and takes a read-only database URL and the Slack webhook from repository secrets. It also caches the previous `result.json`.
 
 Never write the webhook URL or database credentials into a file that is committed. Both options change the project or production config: show the exact change, and set it up only after the user approves (rule 2).
 

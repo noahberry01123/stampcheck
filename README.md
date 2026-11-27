@@ -268,6 +268,7 @@ In some countries, monitoring individual employees needs agreement first. In Ger
 pip install -e ".[dev,yaml]"
 pytest
 python tests/make_messy.py    # regenerate examples/messy.csv after changing the demo
+python scripts/build_agent_page.py   # regenerate stampcheck.io/agent after editing AGENTS.md
 ```
 
 Python 3.10 or newer. No runtime dependencies. MIT licence.
