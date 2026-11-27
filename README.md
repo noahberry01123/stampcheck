@@ -1,5 +1,19 @@
 # StampCheck
 
+**TL;DR:** StampCheck reads your approval logs and tells you if a human review step has quietly turned into a rubber stamp. Try it:
+
+```bash
+pip install stampcheck && stampcheck demo
+```
+
+Or paste this into your coding agent:
+
+```text
+Set up StampCheck for this project. Follow the instructions at https://stampcheck.io/agent. Ask me before changing any code.
+```
+
+What the agent will do: [stampcheck.io/agent](https://stampcheck.io/agent/) (the same steps are in [AGENTS.md](AGENTS.md)).
+
 **Find out whether the human approval step in your system still checks anything, or has quietly become a rubber stamp.**
 
 Website: [stampcheck.io](https://stampcheck.io) · New here? [Get started in 5 minutes](https://stampcheck.io/start/) · [Try the 20-minute hands-on tutorial](https://stampcheck.io/tutorial/)

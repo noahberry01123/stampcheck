@@ -1,0 +1,13 @@
+# StampCheck
+
+> StampCheck reads your approval logs and tells you if a human review step has quietly turned into a rubber stamp. Read-only Python command-line tool: `pip install stampcheck`.
+
+## Setting up StampCheck in a project
+
+- [Agent setup instructions (plain text)](https://stampcheck.io/agent.txt): numbered steps for an AI coding agent setting up StampCheck in someone else's project, with the rules to follow. The same content as HTML: https://stampcheck.io/agent/
+
+## Docs
+
+- [README](https://github.com/noahberry01123/stampcheck#readme): every check, data field, mapping option and command
+- [Quick start](https://stampcheck.io/start/)
+- [Hands-on tutorial](https://stampcheck.io/tutorial/)

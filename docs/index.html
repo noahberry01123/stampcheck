@@ -64,6 +64,10 @@ ul.links li { margin: 6px 0; }
 }
 .cta:hover { background: var(--go-hover); }
 .cta:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+.tldr { margin: 24px 0 0; padding: 16px 18px 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.tldr p { color: var(--ink); }
+.tldr pre { margin-bottom: 14px; }
+pre.prompt { white-space: pre-wrap; }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; color: var(--muted); }
 footer p { color: var(--muted); }
 </style>
@@ -74,6 +78,13 @@ footer p { color: var(--muted); }
     <div class="brand">StampCheck</div>
     <button class="theme" id="theme" type="button" aria-pressed="false">Dark mode</button>
   </div>
+  <section class="tldr" aria-label="TL;DR">
+    <p><b>TL;DR:</b> StampCheck reads your approval logs and tells you if a human review step has quietly turned into a rubber stamp. Try it:</p>
+    <pre><span class="p">$ </span>pip install stampcheck &amp;&amp; stampcheck demo</pre>
+    <p>Or paste this into your coding agent:</p>
+    <pre class="prompt">Set up StampCheck for this project. Follow the instructions at https://stampcheck.io/agent. Ask me before changing any code.</pre>
+    <p><a href="/agent/">What the agent will do &rarr;</a></p>
+  </section>
   <h1>Find out if your human approval step still checks anything</h1>
   <p class="lead">Many systems send automated decisions, like refunds, account locks, or content takedowns, to a person for approval.
     Over time, reviewers learn that the software is usually right and start approving almost everything in seconds, while the log still says "human reviewed".
