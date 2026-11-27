@@ -79,8 +79,10 @@ pre .c { color: var(--muted); }
 footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px;
   display: flex; flex-wrap: wrap; gap: 8px 20px; }
 @media (max-width: 720px) {
-  .step { grid-template-columns: 1fr; padding: 20px 16px; gap: 16px; }
+  /* minmax(0, 1fr), not 1fr: a plain 1fr column grows to fit the longest command line and widens the page */
+  .step { grid-template-columns: minmax(0, 1fr); padding: 20px 16px; gap: 16px; }
   .num { font-size: 52px; }
+  pre { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
